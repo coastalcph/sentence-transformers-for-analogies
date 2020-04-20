@@ -31,7 +31,7 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
         for row in read_analogy_data(fname_in):
             if is_comment(row):
                 # get distances
-                match = re.search(q_pattern, row['Q1'])
+                match = re.search(q_pattern, row['e1'])
                 q1, p, q2 = match.group(1), match.group(2), match.group(3)
                 distances = compute_biggraph_distances_pair(q1, q2, emb_file, pointers)
                 if distances:
@@ -39,7 +39,7 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
                 else:
                     d = None
             else:
-                q1, q2, q3, q4 = row['q1'], row['q2'], row['q3'], row['q4']
+                q1, q2, q3, q4 = row['qid1'], row['qid2'], row['qid3'], row['qid4']
                 distances = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
                 if distances:
                     d = distances[0][0]
