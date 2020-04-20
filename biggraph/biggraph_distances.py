@@ -12,7 +12,7 @@ from biggraph import graphreader
 
 def read_analogy_data(fname):
     with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q2', 'Q3', 'Q4']
+        fieldnames = ['e1', 'qid1', 'e2', 'qid2', 'e3', 'qid3', 'e4', 'qid4']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         for row in reader:
             yield row
@@ -33,22 +33,29 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
                 # get distances
                 match = re.search(q_pattern, row['Q1'])
                 q1, p, q2 = match.group(1), match.group(2), match.group(3)
-                distances = compute_biggraph_distances(q1, q2, emb_file, pointers)
+                distances = compute_biggraph_distances_pair(q1, q2, emb_file, pointers)
                 if distances:
                     d = distances[0][0]
                 else:
                     d = None
-            outrow = [row['Q1'], row['Q2'], row['Q3'], row['Q4'], d]
+            else:
+                q1, q2, q3, q4 = row['q1'], row['q2'], row['q3'], row['q4']
+                distances = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
+                if distances:
+                    d = distances[0][0]
+                else:
+                    d = None
+            outrow = [row['e1'], row['qid1'], row['e2'], row['qid2'], row['e3'], row['qid3'], row['e4'], row['qid4'], d]
             writer.writerow(outrow)
     f.close()
 
 
 
 def is_comment(row):
-    if row['Q1'].startswith('# '): return True
+    if row['e1'].startswith('# '): return True
     else: return False
 
-def compute_biggraph_distances(qid1, qid2, emb_file, pointers):
+def compute_biggraph_distances_pair(qid1, qid2, emb_file, pointers):
     if qid1 in pointers and qid2 in pointers:
         emb1 = graphreader.get_embedding(emb_file, pointers[qid1])
         emb2 = graphreader.get_embedding(emb_file, pointers[qid2])
@@ -58,6 +65,36 @@ def compute_biggraph_distances(qid1, qid2, emb_file, pointers):
         print('{} not in embeddings'.format(qid1))
     if qid2 not in pointers:
         print('{} not in embeddings'.format(qid2))
+    return None
+
+
+def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, pointers):
+    """
+    compute average between the distances between all elements of the quadruplet
+    :param qid1:
+    :param qid2:
+    :param qid3:
+    :param qid4:
+    :param emb_file:
+    :param pointers:
+    :return:
+    """
+    if qid1 in pointers and qid2 in pointers and qid3 in pointers and qid4 in pointers:
+        emb1 = graphreader.get_embedding(emb_file, pointers[qid1])
+        emb2 = graphreader.get_embedding(emb_file, pointers[qid2])
+        emb3 = graphreader.get_embedding(emb_file, pointers[qid3])
+        emb4 = graphreader.get_embedding(emb_file, pointers[qid4])
+        embs = np.array([emb1, emb2, emb3, emb4])
+        dists = cosine_distances(embs, embs)
+        return np.sum(dists)/(dists.shape[0]*(dists.shape[0]-1))
+    if qid1 not in pointers:
+        print('{} not in embeddings'.format(qid1))
+    if qid2 not in pointers:
+        print('{} not in embeddings'.format(qid2))
+    if qid3 not in pointers:
+        print('{} not in embeddings'.format(qid3))
+    if qid4 not in pointers:
+        print('{} not in embeddings'.format(qid4))
     return None
 
 if __name__=="__main__":
@@ -75,3 +112,4 @@ if __name__=="__main__":
         fname = os.path.join(config.get('Files', 'data'), 'analogy_all_{}.csv'.format(lang))
         fname_out = os.path.join(config.get('Files', 'data'), 'analogy_all_{}_dists.csv'.format(lang))
         augment_analogy_data(fname, fname_out, emb_file, pointers)
+
