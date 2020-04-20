@@ -40,11 +40,8 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
                     d = None
             else:
                 q1, q2, q3, q4 = row['qid1'], row['qid2'], row['qid3'], row['qid4']
-                distances = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
-                if distances:
-                    d = distances[0][0]
-                else:
-                    d = None
+                d = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
+                
             outrow = [row['e1'], row['qid1'], row['e2'], row['qid2'], row['e3'], row['qid3'], row['e4'], row['qid4'], d]
             writer.writerow(outrow)
     f.close()
