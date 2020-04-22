@@ -8,14 +8,8 @@ import configparser
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
 from biggraph import graphreader
+from data import read_analogy_data, is_comment
 
-
-def read_analogy_data(fname):
-    with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q2', 'Q3', 'Q4']
-        reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
-        for row in reader:
-            yield row
 
 def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
     """
@@ -42,11 +36,6 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
             writer.writerow(outrow)
     f.close()
 
-
-
-def is_comment(row):
-    if row['Q1'].startswith('# '): return True
-    else: return False
 
 def compute_biggraph_distances(qid1, qid2, emb_file, pointers):
     if qid1 in pointers and qid2 in pointers:

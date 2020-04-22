@@ -5,3 +5,5 @@ examples/output
 sentence_transformers.egg-info
 dist/
 nr_*/
+venv
+data/
