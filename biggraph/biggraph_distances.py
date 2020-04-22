@@ -8,7 +8,7 @@ import configparser
 import numpy as np
 from sklearn.metrics.pairwise import cosine_distances
 from biggraph import graphreader
-from data import read_analogy_data, is_comment
+from analogy.data import read_analogy_data, is_comment
 
 
 def augment_analogy_data(fname_in, fname_out, emb_file, pointers):

@@ -1,7 +1,7 @@
 import logging
 import os
 
-from data import build_analogy_examples_from_file
+from analogy.data import build_analogy_examples_from_file
 
 
 def get_entities(fname):
