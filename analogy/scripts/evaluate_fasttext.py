@@ -200,7 +200,7 @@ def collate(examples):
     return torch.tensor(input_ids), torch.LongTensor([1] * len(examples))
 
 
-def train(configs, language):
+def evaluate(configs, language):
     cuda_device = 0
     device = torch.device("cuda:%d" % cuda_device if torch.cuda.is_available() else "cpu")
     logging.info("Sending model to device {}".format(device))
@@ -235,7 +235,7 @@ def train(configs, language):
 
 def main(configs):
     for language in LANGUAGES:
-        train(configs, language)
+        evaluate(configs, language)
 
 
 if __name__ == '__main__':
