@@ -52,16 +52,34 @@ def file_close(fp):
 
 
 def get_embedding(fp, n):
+    """
+    get embedding from biggraph dump
+    :param fp:
+    :param n:
+    :return:
+    """
     start_load = time()
     fp.seek(n)
     emb = fp.readline()
     emb = emb.strip().split('\t')
-    print(emb)
     qid = emb[:1][0]
     emb = np.array(emb[1:], dtype=np.float)
     print('Accessed {} at byte {} in {:.2f} seconds.'.format(qid, n, time() - start_load))
-
     return emb
+
+def get_q_json(fp, n):
+    """
+    get qcode entry in json format from wikidata dump
+    """
+    start_load = time()
+    fp.seek(n)
+    line = fp.readline()
+    j = json.loads(line.strip().strip(','))
+    def get_qid(j):
+        return j['id']
+    qid = get_qid(j)
+    print('Accessed {} at byte {} in {:.2f} seconds.'.format(qid, n, time() - start_load))
+    return j
 
 
 if __name__ == '__main__':
