@@ -203,6 +203,7 @@ def collate(examples):
 def train(configs, language):
     cuda_device = 0
     device = torch.device("cuda:%d" % cuda_device if torch.cuda.is_available() else "cpu")
+    logging.info("Sending model to device {}".format(device))
 
     logging.info("Working on language {}".format(language))
     dataset_path = "./data/analogy_qids/analogy_{dataset}_{language}.csv".format(
