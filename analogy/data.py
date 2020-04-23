@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 import csv
 
@@ -47,6 +48,7 @@ class Analogy:
 
 
 def read_analogy_data(fname):
+    logging.info("Loading analogy file: {}".format(fname))
     with open(fname, newline='') as csvfile:
         fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
@@ -87,7 +89,7 @@ def parse_type_and_id(row):
 
 
 def build_analogy_examples(rows):
-
+    logging.info("Building analogy examples")
     current_q_1_type = None
     current_q_1_id = None
     current_q2_type = None

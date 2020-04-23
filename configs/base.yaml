@@ -1,0 +1,3 @@
+model: fasttext
+loss: explicit
+dataset: all
