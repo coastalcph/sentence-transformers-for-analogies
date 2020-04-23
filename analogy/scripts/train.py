@@ -201,6 +201,9 @@ def collate(examples):
 
 
 def train(configs, language):
+    cuda_device = 0
+    device = torch.device("cuda:%d" % cuda_device if torch.cuda.is_available() else "cpu")
+
     logging.info("Working on language {}".format(language))
     dataset_path = "./data/analogy_qids/analogy_{dataset}_{language}.csv".format(
         dataset=configs['dataset'],
@@ -224,6 +227,7 @@ def train(configs, language):
     my_embeddings.load_words_embeddings(vectors)
     model = AnalogyModel(my_embeddings)
     poutyne_model = Model(model, 'sgd', loss_function=model.loss_function, batch_metrics=[model.accuracy])
+    poutyne_model.to(device)
     loss, acc = poutyne_model.evaluate_generator(dataloader)
     logging.info("Accuracy: {}".format(acc))
 
