@@ -147,7 +147,9 @@ def augment_data(analogy_file, outfile, lang, pointers_file, dump_file):
     pointers = load_pointers(pointers_file)
     dump = file_open(dump_file)
     with open(outfile, 'w') as f:
-        writer = csv.writer(f, delimiter=';')
+
+        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id'] +
+                                                               ['Q1_context', 'Q2_context', 'Q3_context', 'Q4_context'])
         for row in read_analogy_data(analogy_file):
             if not is_comment(row):
                 q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
@@ -158,6 +160,7 @@ def augment_data(analogy_file, outfile, lang, pointers_file, dump_file):
                 row.update({'Q2_context': q2_context})
                 row.update({'Q3_context': q3_context})
                 row.update({'Q4_context': q4_context})
+                print(row)
                 writer.writerow(row)
             else:
                 writer.writerow(row)
