@@ -19,15 +19,17 @@ class Analogy:
     q_2_source_id: str
     q_2_target: str
     q_2_target_id: str
+    distance: float
 
     def __repr__(self):
         return """
         ====================
-    Analogy: {q_1_type} ({q_1_id}) -> {p_type} ({p_id}) -> {q_2_type} ({q_2_id})
+    Analogy ({distance}): {q_1_type} ({q_1_id}) -> {p_type} ({p_id}) -> {q_2_type} ({q_2_id})
     ====================
     {q_1_source} ({q_1_source_id}) -> {q_1_target} ({q_1_target_id}) / {q_2_source} ({q_2_source_id}) -> {q_2_target} ({q_2_target_id})
     ____________________
         """.format(
+            distance=self.distance,
             q_1_type=self.q_1_type,
             q_1_id=self.q_1_id,
             p_type=self.p_type,
@@ -50,7 +52,7 @@ class Analogy:
 def read_analogy_data(fname):
     logging.info("Loading analogy file: {}".format(fname))
     with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id']
+        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'distance']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         for row in reader:
             yield row
@@ -122,6 +124,7 @@ def build_analogy_examples(rows):
                 row['Q3_id'],
                 row['Q4'],
                 row['Q4_id'],
+                row['distance'] if row['distance']  != '' else -1.0  # For some analogies we don't have the distances
             )
 
 
@@ -130,6 +133,6 @@ def build_analogy_examples_from_file(fname):
 
 
 if __name__ == '__main__':
-    analogies = build_analogy_examples(read_analogy_data('./data/analogy_qids/analogy_unique_da.csv'))
+    analogies = build_analogy_examples(read_analogy_data('./data/analogy_dists/analogy_unique_da_dists.csv'))
     print(list(analogies))
 

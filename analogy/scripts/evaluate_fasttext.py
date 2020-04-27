@@ -3,6 +3,9 @@ import sys
 import argparse
 import logging
 import yaml
+from typing import List
+
+from dataclasses import dataclass
 
 from tqdm import tqdm
 import numpy as np
@@ -12,6 +15,7 @@ from torch import nn
 from torch.utils.data import DataLoader
 
 from poutyne.framework import Model
+from poutyne.framework.metrics import EpochMetric
 
 from analogy.data import build_analogy_examples_from_file
 
@@ -31,6 +35,15 @@ LANGUAGES = [
 ]
 
 
+@dataclass
+class AnalogyExample:
+    e1: List[str]
+    e2: List[str]
+    e3: List[str]
+    e4: List[str]
+    distance: float
+
+
 def process_entity(entity):
     elements = list()
     entity = entity.lower()
@@ -44,12 +57,13 @@ def preprocess_analogies(analogies):
     logging.info("Preprocessing analogies")
     processed_analogies = list()
     for analogy in analogies:
-        processed_analogies.append(
-            (process_entity(analogy.q_1_source),
+        processed_analogies.append(AnalogyExample(
+            process_entity(analogy.q_1_source),
             process_entity(analogy.q_1_target),
             process_entity(analogy.q_2_source),
-            process_entity(analogy.q_2_target))
-        )
+            process_entity(analogy.q_2_target),
+            float(analogy.distance)
+        ))
     return processed_analogies
 
 
@@ -57,9 +71,14 @@ def build_vocab(processed_analogies):
     logging.info("Building vocabulary")
     vocab = set()
     for a in processed_analogies:
-        for element in a:
-            for e in element:
-                vocab.add(e)
+        for element in a.e1:
+            vocab.add(element)
+        for element in a.e2:
+            vocab.add(element)
+        for element in a.e3:
+            vocab.add(element)
+        for element in a.e4:
+            vocab.add(element)
     return vocab
 
 
@@ -111,6 +130,27 @@ class MyEmbeddings(nn.Embedding):
                 self.set_item_embedding(idx, embedding)
 
 
+class CorrelationMetric(EpochMetric):
+    def __init__(self) -> None:
+        super().__init__()
+        self.scores = list()
+        self.distances = list()
+
+    def forward(self, x, y):
+        # Accumulate metrics here
+        e1, e2, e3, e4, offset_trick, scores, distances = x
+        for i, (s, d) in enumerate(zip(scores, distances)):
+            self.scores.append(1 - float(s[e3[i]]))
+            self.distances.append(float(d))  # We append the distance
+
+    def get_metric(self):
+        return np.corrcoef(self.scores, self.distances)[0][1]
+
+    def reset(self) -> None:
+        self.scores = list()
+        self.distances = list()
+
+
 class AnalogyModel(nn.Module):
     def __init__(self, embeddings):
         super(AnalogyModel, self).__init__()
@@ -118,38 +158,40 @@ class AnalogyModel(nn.Module):
         self.loss = nn.CosineEmbeddingLoss()
 
     def loss_function(self, x, y):
-        e1, e2, e3, e4, offset_trick, filters = x
+        e1, e2, e3, e4, offset_trick, scores, distances = x
         return self.loss(offset_trick, self.embeddings(e3), y)
 
     def accuracy(self, x, y):
-        e1, e2, e3, e4, offset_trick, filters = x
-        scores = offset_trick.matmul(self.embeddings.weight.transpose(0,1))
+        e1, e2, e3, e4, offset_trick, scores, distances = x
         return ((scores.argsort(descending=True)[:, :4] - e3.view(-1, 1).expand(len(e1), 4)) == 0).float().sum() / len(e1)
 
-    def forward(self, inputs):
-        e1 = inputs[:, 0]
-        e2 = inputs[:, 1]
-        e3 = inputs[:, 2]
-        e4 = inputs[:, 3]
+    def forward(self, input_ids, distances):
+        e1 = input_ids[:, 0]
+        e2 = input_ids[:, 1]
+        e3 = input_ids[:, 2]
+        e4 = input_ids[:, 3]
         e1_embeddings = self.embeddings(e1)
         e2_embeddings = self.embeddings(e2)
         e3_embeddings = self.embeddings(e3)
         e4_embeddings = self.embeddings(e4)
         offset_trick = e1_embeddings - e2_embeddings + e4_embeddings
-        filters = torch.cat([e1.view(-1, 1), e2.view(-1, 1), e4.view(-1, 1)], dim=1)
-        return e1, e2, e3, e4, offset_trick, filters
+        a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
+        b_norm = self.embeddings.weight / self.embeddings.weight.norm(dim=1)[:, None]
+        cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
+        return e1, e2, e3, e4, offset_trick, cosine_sims, distances
 
 
 def vectorize_dataset(analogies, word_to_idx):
     elements = list()
-    for e1, e2, e3, e4 in analogies:
-        v_e1 = word_to_idx[e1]
-        v_e2 = word_to_idx[e2]
-        v_e3 = word_to_idx[e3]
-        v_e4 = word_to_idx[e4]
+    for a in analogies:
+        v_e1 = word_to_idx[a.e1]
+        v_e2 = word_to_idx[a.e2]
+        v_e3 = word_to_idx[a.e3]
+        v_e4 = word_to_idx[a.e4]
         data = {
-            "original": (e1, e2, e3, e4),
-            "input_ids": (v_e1, v_e2, v_e3, v_e4)
+            "original": (a.e1, a.e2, a.e3, a.e4),
+            "input_ids": (v_e1, v_e2, v_e3, v_e4),
+            "distance": a.distance
         }
         elements.append(data)
     return elements
@@ -180,26 +222,29 @@ def merge_entity(entity, vectors):
 def merge_entities_and_augment_vectors(analogies, vectors):
     logging.info("Merging entities and averaging their embeddings")
     analogies_with_merged_entities = list()
-    for e1, e2, e3, e4 in tqdm(analogies):
-        new_e1 = merge_entity(e1, vectors)
-        new_e2 = merge_entity(e2, vectors)
-        new_e3 = merge_entity(e3, vectors)
-        new_e4 = merge_entity(e4, vectors)
+    for a in tqdm(analogies):
+        new_e1 = merge_entity(a.e1, vectors)
+        new_e2 = merge_entity(a.e2, vectors)
+        new_e3 = merge_entity(a.e3, vectors)
+        new_e4 = merge_entity(a.e4, vectors)
         if new_e1 and new_e2 and new_e3 and new_e4:  # if we found anything for each entity
-            analogies_with_merged_entities.append((
+            analogies_with_merged_entities.append(AnalogyExample(
                 new_e1,
                 new_e2,
                 new_e3,
                 new_e4,
+                a.distance
             ))
     return analogies_with_merged_entities
 
 
 def collate(examples):
     input_ids = list()
+    distances = list()
     for e in examples:
         input_ids.append(e['input_ids'])
-    return torch.tensor(input_ids), torch.LongTensor([1] * len(examples))
+        distances.append(e['distance'])
+    return (torch.tensor(input_ids), torch.FloatTensor(distances)), torch.LongTensor([1] * len(examples))
 
 
 def evaluate(configs, language):
@@ -208,7 +253,7 @@ def evaluate(configs, language):
     logging.info("Sending model to device {}".format(device))
 
     logging.info("Working on language {}".format(language))
-    dataset_path = "./data/analogy_qids/analogy_{dataset}_{language}.csv".format(
+    dataset_path = "./data/analogy_dists/analogy_{dataset}_{language}_dists.csv".format(
         dataset=configs['dataset'],
         language=language
     )
@@ -231,15 +276,16 @@ def evaluate(configs, language):
     my_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     my_embeddings.load_words_embeddings(vectors)
     model = AnalogyModel(my_embeddings)
-    poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy])
+    poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy], epoch_metrics=[CorrelationMetric()])
     poutyne_model.to(device)
     loss, acc = poutyne_model.evaluate_generator(dataloader)
-    logging.info("Accuracy: {}".format(acc))
+    logging.info("Accuracy: {}".format(acc[0]))
+    logging.info("Correlation: {}".format(acc[1]))
 
-    logging.info("Launching train")
-    poutyne_model.fit_generator(dataloader)
-    loss, acc = poutyne_model.evaluate_generator(dataloader)
-    logging.info("Accuracy: {}".format(acc))
+    # logging.info("Launching train")
+    # poutyne_model.fit_generator(dataloader)
+    # loss, acc = poutyne_model.evaluate_generator(dataloader)
+    # logging.info("Accuracy: {}".format(acc))
 
 
 def main(configs):
