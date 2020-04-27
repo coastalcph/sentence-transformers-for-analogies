@@ -115,9 +115,11 @@ class AnalogyModel(nn.Module):
     def __init__(self, embeddings):
         super(AnalogyModel, self).__init__()
         self.embeddings = embeddings
+        self.loss = nn.CosineEmbeddingLoss()
 
     def loss_function(self, x, y):
-        return 0.0
+        e1, e2, e3, e4, offset_trick, filters = x
+        return self.loss(offset_trick, self.embeddings(e3), y)
 
     def accuracy(self, x, y):
         e1, e2, e3, e4, offset_trick, filters = x
@@ -211,6 +213,8 @@ def evaluate(configs, language):
         language=language
     )
     analogies = build_analogy_examples_from_file(dataset_path)
+    if configs['test']:
+        analogies = list(analogies)[:10000]
 
     processed_analogies = preprocess_analogies(analogies)
     vocab = build_vocab(processed_analogies)
@@ -227,8 +231,13 @@ def evaluate(configs, language):
     my_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     my_embeddings.load_words_embeddings(vectors)
     model = AnalogyModel(my_embeddings)
-    poutyne_model = Model(model, 'sgd', loss_function=model.loss_function, batch_metrics=[model.accuracy])
+    poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy])
     poutyne_model.to(device)
+    loss, acc = poutyne_model.evaluate_generator(dataloader)
+    logging.info("Accuracy: {}".format(acc))
+
+    logging.info("Launching train")
+    poutyne_model.fit_generator(dataloader)
     loss, acc = poutyne_model.evaluate_generator(dataloader)
     logging.info("Accuracy: {}".format(acc))
 
