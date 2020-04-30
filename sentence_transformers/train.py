@@ -7,19 +7,18 @@ from sentence_transformers.readers import NLIDataReader, STSDataReader, AnalogyR
 from sentence_transformers import losses
 from torch.utils.data import DataLoader
 from sentence_transformers.datasets import SentencesDataset, AnalogyDataset
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator
+from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, AnalogyEvaluator
 import os
 import argparse
 import uuid
 
 def main(args):
 
-    if args.output_path == '':
+    if args.out == '':
         output_path = uuid.uuid4().hex
     else:
-        output_path = args.output_path
-    batch_size = args.batch_size
-    train_batch_size = batch_size
+        output_path = args.out
+    batch_size = args.bs
 
     # Set up encoder
     if args.encoder == 'small_bert':
@@ -40,7 +39,7 @@ def main(args):
     # Set up loss
     if args.loss == 'mse':
         train_loss = losses.AnalogyMSELoss(model=model)
-    elif args.loss == 'hard_triplet':
+    elif args.loss == 'hardtriplet':
         train_loss = losses.AnalogyBatchHardTripletLoss(sentence_embedder=model)
 
 
@@ -49,22 +48,18 @@ def main(args):
     train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
     train_dataloader = DataLoader(train_data, shuffle=False, batch_size=batch_size)
 
-    #sts_reader = STSDataReader('/home/mareike/PycharmProjects/analogies/code/sentence-transformers-for-analogies/examples/datasets/stsbenchmark')
-    #dev_data = SentencesDataset(examples=sts_reader.get_examples('sts-dev.csv'), model=model)
-    #dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=train_batch_size)
     analogy_reader = AnalogyReader()
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = EmbeddingSimilarityEvaluator(dev_dataloader)
-
+    evaluator = AnalogyEvaluator(dev_dataloader)
 
 
 
     # Train
     model.fit(train_objectives=[(train_dataloader, train_loss)],
          evaluator=evaluator,
-         epochs=2,
-         evaluation_steps=1,
+         epochs=5,
+         evaluation_steps=5,
          warmup_steps=0,
          output_path=output_path
          )
@@ -89,10 +84,10 @@ if __name__ == '__main__':
     parser.add_argument('--train_data', type=str,
                         help="csv file with analogies", default='analogy_unique_en.csv.small')
     parser.add_argument('--dev_data', type=str,
-                        help="csv file with analogies", default='analogy_unique_en.csv.small')
+                        help="csv file with analogies", default='analogy_unique_en.csv.dev')
     parser.add_argument('--out', type=str,
                         help="output path", default='')
-    parser.add_argument('--bs', type=int,
+    parser.add_argument('--bs', type=int, default=8,
                         help="Batch size")
 
 

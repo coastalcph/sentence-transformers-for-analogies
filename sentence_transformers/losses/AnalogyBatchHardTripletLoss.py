@@ -1,7 +1,10 @@
+from typing import Iterable, Dict
+
 import torch
-from torch import nn, Tensor
-from typing import Union, Tuple, List, Iterable, Dict
 import numpy as np
+from torch import nn, Tensor
+
+#from ..util import combine_anchor_entities
 
 
 class AnalogyBatchHardTripletLoss(nn.Module):
@@ -12,16 +15,16 @@ class AnalogyBatchHardTripletLoss(nn.Module):
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-        rep_e1, rep_e2, rep_e3, rep_e4 = reps
-        anchor = self.combine_anchor_entities(rep_e1, rep_e2, rep_e4)
-        embeddings = torch.cat((anchor, rep_e3), 0)
+
+        ea, e3 = self.combine_anchor_entities(reps[0], reps[1], reps[2], reps[3])
+        embeddings = torch.cat((ea, e3), 0)
         # labels should be the same only for *corresponding* anchor and rep_e3
-        _labels = torch.from_numpy(np.array([i for i in range(anchor.shape[0])]))
+        _labels = torch.from_numpy(np.array([i for i in range(ea.shape[0])]))
         labels = torch.cat((_labels, _labels), 0)
         return AnalogyBatchHardTripletLoss.batch_hard_triplet_loss(labels, embeddings, margin=self.triplet_margin)
 
-    def combine_anchor_entities(self, e1, e2, e4):
-        return e1 - e2 + e4
+    def combine_anchor_entities(self, e1, e2, e3, e4):
+        return e1 - e2 + e4, e3
 
     # Hard Triplet Loss for Analogies
     # Adapted from sentenceBert where it was adapted from:
@@ -227,7 +230,10 @@ if __name__=="__main__":
     num_classes = num_data
     emb_dim = 10
     anchors = torch.from_numpy(np.random.randint(0, 100, size=(num_data, emb_dim)).astype(np.float32))
+    e3s = torch.from_numpy(np.random.randint(0, 100, size=(num_data, emb_dim)).astype(np.float32))
     e4s = torch.from_numpy(np.random.randint(0, 100, size=(num_data, emb_dim)).astype(np.float32))
+    sims = torch.mm(e4s, e3s.transpose(0,1))
+    """
     print(anchors.shape[0])
     _labels = torch.from_numpy(np.array([i for i in range(anchors.shape[0])]))
     labels = torch.cat((_labels, _labels), 0)
@@ -241,3 +247,12 @@ if __name__=="__main__":
     print(mn)
     ls = l.batch_hard_triplet_loss(labels=labels, embeddings= embeddings, margin=1)
     print(ls)
+    """
+    print(sims)
+    idxs = sims.argsort(descending=True)[:, 0]
+    e3_idxs = torch.from_numpy(np.array([elm for elm in range(num_data)]).astype(np.long))
+    print(idxs)
+    print(e3_idxs)
+    print(len(e3_idxs))
+    print(idxs - e3_idxs)
+

@@ -73,3 +73,7 @@ def import_from_string(dotted_path):
     except AttributeError:
         msg = 'Module "%s" does not define a "%s" attribute/class' % (module_path, class_name)
         raise ImportError(msg)
+
+
+def combine_anchor_entities(e1,e2,e3,e4):
+    return e1 - e2 + e4, e3
