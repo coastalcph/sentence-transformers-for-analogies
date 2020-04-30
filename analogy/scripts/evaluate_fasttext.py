@@ -17,6 +17,9 @@ from torch.utils.data import DataLoader
 from poutyne.framework import Model
 from poutyne.framework.metrics import EpochMetric
 
+from sklearn.neural_network import MLPRegressor
+from sklearn.model_selection import train_test_split
+
 from analogy.data import build_analogy_examples_from_file
 
 
@@ -152,14 +155,21 @@ class CorrelationMetric(EpochMetric):
 
 
 class AnalogyModel(nn.Module):
-    def __init__(self, embeddings):
+    def __init__(self, trainable_embeddings, full_embeddings):
         super(AnalogyModel, self).__init__()
-        self.embeddings = embeddings
+        self.trainable_embeddings = trainable_embeddings
+        self.full_embeddings = full_embeddings
         self.loss = nn.CosineEmbeddingLoss()
+
+    def set_mapper(self, mapper):
+        self.mapper = mapper
 
     def loss_function(self, x, y):
         e1, e2, e3, e4, offset_trick, scores, distances = x
-        return self.loss(offset_trick, self.embeddings(e3), y)
+        if self.training:
+            return self.loss(offset_trick, self.trainable_embeddings(e3), y)
+        else:
+            return self.loss(offset_trick, self.full_embeddings(e3), y)
 
     def is_success(self, e3, e1_e2_e4, top4):
         if e3 not in top4:
@@ -188,15 +198,43 @@ class AnalogyModel(nn.Module):
         e2 = input_ids[:, 1]
         e3 = input_ids[:, 2]
         e4 = input_ids[:, 3]
-        e1_embeddings = self.embeddings(e1)
-        e2_embeddings = self.embeddings(e2)
-        e3_embeddings = self.embeddings(e3)
-        e4_embeddings = self.embeddings(e4)
-        offset_trick = e1_embeddings - e2_embeddings + e4_embeddings
-        a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
-        b_norm = self.embeddings.weight / self.embeddings.weight.norm(dim=1)[:, None]
+
+        if self.training:
+            e1_embeddings = self.trainable_embeddings(e1)
+            e2_embeddings = self.trainable_embeddings(e2)
+            e3_embeddings = self.trainable_embeddings(e3)
+            e4_embeddings = self.trainable_embeddings(e4)
+            offset_trick = e1_embeddings - e2_embeddings + e4_embeddings
+            a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
+            b_norm = self.trainable_embeddings.weight / self.trainable_embeddings.weight.norm(dim=1)[:, None]
+        else:
+            e1_embeddings = self.full_embeddings(e1)
+            e2_embeddings = self.full_embeddings(e2)
+            e3_embeddings = self.full_embeddings(e3)
+            e4_embeddings = self.full_embeddings(e4)
+            mapped_e1 = self.mapper.apply(e1_embeddings)
+            mapped_e2 = self.mapper.apply(e2_embeddings)
+            mapped_e3 = self.mapper.apply(e3_embeddings)
+            mapped_e4 = self.mapper.apply(e4_embeddings)
+            offset_trick = mapped_e1 - mapped_e2 + mapped_e4 
+            a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
+            b_norm = self.mapper.apply(self.full_embeddings.weight) / self.mapper.apply(self.full_embeddings.weight).norm(dim=1)[:, None]
         cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
         return e1, e2, e3, e4, offset_trick, cosine_sims, distances
+
+
+class IdentityMapper:
+    def apply(self, elems):
+        return elems
+
+
+class NeuralMapper:
+    def __init__(self, mapping_model):
+        self.model = mapping_model
+
+    def apply(self, elems):
+        return torch.tensor(self.model.predict(elems.detach().numpy()))
+
 
 
 def vectorize_dataset(analogies, word_to_idx):
@@ -265,6 +303,13 @@ def collate(examples):
     return (torch.tensor(input_ids), torch.FloatTensor(distances)), torch.LongTensor([1] * len(examples))
 
 
+def split_examples(dataset, ratio=0.8):
+    np.random.shuffle(dataset)
+    train = dataset[:int(len(dataset)*ratio)]
+    test = dataset[int(len(dataset)*ratio):]
+    return train, test
+
+
 def evaluate(configs, language):
     cuda_device = 0
     device = torch.device("cuda:%d" % cuda_device if torch.cuda.is_available() else "cpu")
@@ -285,25 +330,67 @@ def evaluate(configs, language):
     vectors = get_vectors_for_vocab(vector_path, vocab)
     analogies_with_merged_entities = merge_entities_and_augment_vectors(processed_analogies, vectors)
     word_to_idx = build_word_mapping(vectors.keys())
-    vectorized_dataset = vectorize_dataset(analogies_with_merged_entities, word_to_idx)
-    logging.info("Dataset size: {}".format(len(vectorized_dataset)))
 
-    dataloader = DataLoader(vectorized_dataset, batch_size=128, collate_fn=collate)
+    train, test = split_examples(analogies_with_merged_entities)
 
-    logging.info("Launching evaluation")
-    my_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
-    my_embeddings.load_words_embeddings(vectors)
-    model = AnalogyModel(my_embeddings)
+    words_in_train = set()
+    for e in train:
+        words_in_train.add(e.e1)
+        words_in_train.add(e.e2)
+        words_in_train.add(e.e3)
+        words_in_train.add(e.e4)
+    vectors_in_train = {k: v for k, v in vectors.items() if k in words_in_train}
+    word_to_idx_in_train = build_word_mapping(words_in_train)
+
+    vectorized_train = vectorize_dataset(train, word_to_idx_in_train)
+    vectorized_test = vectorize_dataset(test, word_to_idx)
+
+    train_loader = DataLoader(vectorized_train, batch_size=128, collate_fn=collate)
+    test_loader = DataLoader(vectorized_test, batch_size=128, collate_fn=collate)
+
+    trainable_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
+    trainable_embeddings.load_words_embeddings(vectors_in_train)
+    full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
+    full_embeddings.load_words_embeddings(vectors)
+    model = AnalogyModel(trainable_embeddings, full_embeddings)
+    mapper = IdentityMapper()
+    model.set_mapper(mapper)
+
     poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy], epoch_metrics=[CorrelationMetric()])
     poutyne_model.to(device)
-    loss, acc = poutyne_model.evaluate_generator(dataloader)
+
+    logging.info("Launching evaluation")
+    loss, acc = poutyne_model.evaluate_generator(test_loader)
     logging.info("Accuracy: {}".format(acc[0]))
     logging.info("Correlation: {}".format(acc[1]))
 
-    # logging.info("Launching train")
-    # poutyne_model.fit_generator(dataloader)
-    # loss, acc = poutyne_model.evaluate_generator(dataloader)
-    # logging.info("Accuracy: {}".format(acc))
+    logging.info("Launching train")
+    poutyne_model.fit_generator(train_loader, epochs=5)
+    loss, acc = poutyne_model.evaluate_generator(test_loader)
+    logging.info("Accuracy: {}".format(acc))
+
+    # Train mapper
+    original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
+    original_embeddings.load_words_embeddings(vectors_in_train)
+    X = original_embeddings.weight.data.numpy()
+    Y = trainable_embeddings.weight.data.numpy()
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
+    mapper_model = MLPRegressor(
+        hidden_layer_sizes=(300, 300, 300, 300),
+        activation='tanh',
+        max_iter=500,
+        verbose=True,
+        alpha=0
+    )
+    mapper_model.fit(X_train, Y_train)
+    logging.info("Score on train: {}".format(mapper_model.score(X_train, Y_train)))
+    logging.info("Score on test: {}".format(mapper_model.score(X_test, Y_test)))
+
+    neural_mapper = NeuralMapper(mapper_model)
+    model.set_mapper(neural_mapper)
+    loss, acc = poutyne_model.evaluate_generator(test_loader)
+    logging.info("Accuracy: {}".format(acc))
+
 
 
 def main(configs):
@@ -312,6 +399,7 @@ def main(configs):
 
 
 if __name__ == '__main__':
+    np.random.seed(42)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
