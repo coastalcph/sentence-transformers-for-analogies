@@ -161,9 +161,20 @@ class AnalogyModel(nn.Module):
         e1, e2, e3, e4, offset_trick, scores, distances = x
         return self.loss(offset_trick, self.embeddings(e3), y)
 
+    def is_success(self, e3, e1_e2_e3, top4):
+        return e3 in top4 and len(e1_e2_e3 & top4) == len(e1_e2_e3)
+
     def accuracy(self, x, y):
-        e1, e2, e3, e4, offset_trick, scores, distances = x
-        return ((scores.argsort(descending=True)[:, :4] - e3.view(-1, 1).expand(len(e1), 4)) == 0).float().sum() / len(e1)
+        e1s, e2s, e3s, e4s, offset_trick, scores, distances = x
+        sorted_indexes_by_scores = scores.argsort(descending=True)[:, :4]
+        accuracies = list()
+        for e1, e2, e3, e4, top4_indexes in zip(e1s, e2s, e3s, e4s, sorted_indexes_by_scores):
+            success = self.is_success(e3, {e1, e2, e4}, set(top4_indexes))
+            if success:
+                accuracies.append(1)
+            else:
+                accuracies.append(0)
+        return sum(accuracies) / len(accuracies)
 
     def forward(self, input_ids, distances):
         e1 = input_ids[:, 0]
