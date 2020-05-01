@@ -58,7 +58,7 @@ def main(args):
     # Train
     model.fit(train_objectives=[(train_dataloader, train_loss)],
          evaluator=evaluator,
-         epochs=5,
+         epochs=args.epochs,
          evaluation_steps=5,
          warmup_steps=0,
          output_path=output_path
@@ -89,6 +89,8 @@ if __name__ == '__main__':
                         help="output path", default='')
     parser.add_argument('--bs', type=int, default=8,
                         help="Batch size")
+    parser.add_argument('--epochs', type=int, default=5,
+                        help="Number of training epochs")
 
 
     args = parser.parse_args()
