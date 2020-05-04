@@ -95,5 +95,8 @@ class AnalogyEvaluator(SentenceEvaluator):
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
                     writer.writerow([epoch, steps, accuracy.item()])
-
+            else:
+                with open(csv_path, mode="a", encoding="utf-8") as f:
+                    writer = csv.writer(f)
+                    writer.writerow([epoch, steps, accuracy.item()])
         return accuracy
