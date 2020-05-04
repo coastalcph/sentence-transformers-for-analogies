@@ -84,7 +84,7 @@ class AnalogyEvaluator(SentenceEvaluator):
         b_norm = rep_e3 / rep_e3.norm(dim=1)[:, None]
         cosine_sims = torch.mm(a_norm, b_norm.transpose(0, 1))
         retrieved_idxs = cosine_sims.argsort(descending=False)[:,0]
-        correct_idxs = torch.from_numpy(np.array([elm for elm in range(num_data)]).astype(np.long))
+        correct_idxs = torch.from_numpy(np.array([elm for elm in range(num_data)]).astype(np.long)).to(self.device)
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
         logging.info("Accuracy:\t{:4f}".format(accuracy))
 
