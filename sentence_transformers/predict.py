@@ -40,8 +40,8 @@ def main(args):
     # Load data
     analogy_reader = AnalogyReader()
     test_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
-    test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
 
+    test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
     tokenizer = model._first_module().tokenizer
     evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer)
 
