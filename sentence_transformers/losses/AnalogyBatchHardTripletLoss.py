@@ -10,8 +10,10 @@ from torch import nn, Tensor
 class AnalogyBatchHardTripletLoss(nn.Module):
     def __init__(self, sentence_embedder, triplet_margin: float = 1):
         super(AnalogyBatchHardTripletLoss, self).__init__()
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.sentence_embedder = sentence_embedder
         self.triplet_margin = triplet_margin
+
 
     def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor):
         reps = [self.sentence_embedder(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
@@ -20,7 +22,7 @@ class AnalogyBatchHardTripletLoss(nn.Module):
         embeddings = torch.cat((ea, e3), 0)
         # labels should be the same only for *corresponding* anchor and rep_e3
         _labels = torch.from_numpy(np.array([i for i in range(ea.shape[0])]))
-        labels = torch.cat((_labels, _labels), 0)
+        labels = torch.cat((_labels, _labels), 0).to(self.device)
         return AnalogyBatchHardTripletLoss.batch_hard_triplet_loss(labels, embeddings, margin=self.triplet_margin)
 
     def combine_anchor_entities(self, e1, e2, e3, e4):
@@ -76,7 +78,8 @@ class AnalogyBatchHardTripletLoss(nn.Module):
 
         # select only the losses for the valid anchors (as e3 cannot be an anchor) , i.e. the first bs elements
         bs = int(embeddings.shape[0]/2)
-        loss_mask = torch.from_numpy(np.array([1]*bs + [0]*bs).astype(np.float32)).reshape(tl.shape)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        loss_mask = torch.from_numpy(np.array([1]*bs + [0]*bs).astype(np.float32)).reshape(tl.shape).to(device)
 
         tl = tl*loss_mask
 
@@ -221,7 +224,8 @@ class AnalogyBatchHardTripletLoss(nn.Module):
         unequal_labels = ~(labels.unsqueeze(0)==labels.unsqueeze(1))
         # select only the bs last columns
         bs = int(labels.shape[0]/2)
-        anchor_e3_pairs = torch.from_numpy(np.hstack([np.zeros((bs*2, bs)), np.ones((bs*2, bs))]).astype(np.uint8))
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        anchor_e3_pairs = torch.from_numpy(np.hstack([np.zeros((bs*2, bs)), np.ones((bs*2, bs))]).astype(np.uint8)).to(device)
         return unequal_labels & anchor_e3_pairs
 
 if __name__=="__main__":
