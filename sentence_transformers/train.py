@@ -59,7 +59,7 @@ def main(args):
     model.fit(train_objectives=[(train_dataloader, train_loss)],
          evaluator=evaluator,
          epochs=args.epochs,
-         evaluation_steps=5,
+         evaluation_steps=args.evaluation_steps,
          warmup_steps=0,
          output_path=output_path
          )
@@ -91,6 +91,8 @@ if __name__ == '__main__':
                         help="Batch size")
     parser.add_argument('--epochs', type=int, default=5,
                         help="Number of training epochs")
+    parser.add_argument('--evaluation_steps', type=int, default=10,
+                        help="Evaluate every n training steps")
 
 
     args = parser.parse_args()
