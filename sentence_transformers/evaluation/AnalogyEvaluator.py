@@ -6,6 +6,7 @@ import logging
 from tqdm import tqdm
 from ..util import batch_to_device, combine_anchor_entities
 import csv
+from transformers import BertModel, BertTokenizer
 
 import numpy as np
 
@@ -20,7 +21,7 @@ class AnalogyEvaluator(SentenceEvaluator):
     """
 
 
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None):
+    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None, write_predictions: bool=False, tokenizer: BertTokenizer=None):
         """
         Constructs an evaluator based for the dataset
 
@@ -42,6 +43,8 @@ class AnalogyEvaluator(SentenceEvaluator):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file = "analogy_accuracy_evaluation"+name+"_results.csv"
         self.csv_headers = ["epoch", "steps", "accuracy"]
+        self.write_predictions=write_predictions
+        self.tokenizer = tokenizer
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
         model.eval()
@@ -63,15 +66,26 @@ class AnalogyEvaluator(SentenceEvaluator):
 
         rep_ea = []
         rep_e3 = []
+        analogies = []
         # encode all analogies
         for step, batch in enumerate(iterator):
             features, label_ids = batch_to_device(batch, self.device)
             with torch.no_grad():
                 reps = [model(sent_features)['sentence_embedding'] for sent_features in features]
                 ea, e3 = combine_anchor_entities(reps[0], reps[1], reps[2], reps[3])
-
                 rep_ea.append(ea)
                 rep_e3.append(e3)
+
+                if self.write_predictions:
+                    # de-tokenize
+                    analogy = []
+                    for sent_features in features:
+                        input_ids = sent_features['input_ids']
+                        for i in input_ids:
+                            surfaces = self.tokenizer.convert_ids_to_tokens(i)
+                            analogy.append(' '.join(surfaces[1:-1]))
+                    print(analogy)
+                    analogies.append(analogy)
 
         rep_ea = torch.cat(rep_ea, 0)
         rep_e3 = torch.cat(rep_e3, 0)
@@ -83,7 +97,10 @@ class AnalogyEvaluator(SentenceEvaluator):
         a_norm = rep_ea / rep_ea.norm(dim=1)[:, None]
         b_norm = rep_e3 / rep_e3.norm(dim=1)[:, None]
         cosine_sims = torch.mm(a_norm, b_norm.transpose(0, 1))
-        retrieved_idxs = cosine_sims.argsort(descending=False)[:,0]
+
+        top_ten_idxs = cosine_sims.argsort(descending=True)[:,:10]
+
+        retrieved_idxs = top_ten_idxs[:,0]
         correct_idxs = torch.from_numpy(np.array([elm for elm in range(num_data)]).astype(np.long)).to(self.device)
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
         logging.info("Accuracy:\t{:4f}".format(accuracy))
@@ -99,4 +116,15 @@ class AnalogyEvaluator(SentenceEvaluator):
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow([epoch, steps, accuracy.item()])
+
+
+        if self.write_predictions:
+            with open(os.path.join(output_path, 'predictions_{}.csv'.format(0)), 'w') as fpred:
+                pred_writer = csv.writer(fpred, delimiter=';')
+                # write out the model predictions
+                top_ten = top_ten_idxs.cpu().numpy()
+                for aid in range(cosine_sims.shape[0]):
+                    predictions = [analogies[pid][2] for pid in top_ten[aid]]
+                    pred_writer.writerow([analogies[aid][0], analogies[aid][1], analogies[aid][2], analogies[aid][3],  ','.join(predictions)])
+            fpred.close()
         return accuracy
