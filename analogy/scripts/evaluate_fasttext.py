@@ -229,11 +229,12 @@ class IdentityMapper:
 
 
 class NeuralMapper:
-    def __init__(self, mapping_model):
+    def __init__(self, mapping_model, device):
         self.model = mapping_model
+        self.device = device
 
     def apply(self, elems):
-        return torch.tensor(self.model.predict(elems.detach().numpy()))
+        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()), device=self.device)
 
 
 
@@ -372,8 +373,8 @@ def evaluate(configs, language):
     # Train mapper
     original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
     original_embeddings.load_words_embeddings(vectors_in_train)
-    X = original_embeddings.weight.data.numpy()
-    Y = trainable_embeddings.weight.data.numpy()
+    X = original_embeddings.weight.data.cpu().numpy()
+    Y = trainable_embeddings.weight.data.cpu().numpy()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
     mapper_model = MLPRegressor(
         hidden_layer_sizes=(300, 300, 300, 300),
@@ -386,7 +387,7 @@ def evaluate(configs, language):
     logging.info("Score on train: {}".format(mapper_model.score(X_train, Y_train)))
     logging.info("Score on test: {}".format(mapper_model.score(X_test, Y_test)))
 
-    neural_mapper = NeuralMapper(mapper_model)
+    neural_mapper = NeuralMapper(mapper_model, device)
     model.set_mapper(neural_mapper)
     loss, acc = poutyne_model.evaluate_generator(test_loader)
     logging.info("Accuracy: {}".format(acc))
