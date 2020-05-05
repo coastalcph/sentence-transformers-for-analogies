@@ -60,7 +60,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
-                        choices=['mbert', 'bert-base-uncased', 'small_bert'],
+                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
