@@ -191,29 +191,27 @@ class AnalogyEvaluator(SentenceEvaluator):
                     input_ids = sent_features['input_ids']
                     # iterate through batch
                     for i, input in enumerate(input_ids):
-                        surface = self.tokenizer.convert_ids_to_tokens(input)
+                        surface = self.tokenizer.convert_ids_to_tokens(input, skip_special_tokens=True)
                         analogy_batch[i].append(' '.join(surface))
-                # for each analogy, add all entities to the candidate set if not present yet
-                for es, rep in zip(analogy_batch, reps):
-                    e1, e2, e3, e4 = es[0], es[1], es[2], es[3]
 
-                    if e1 not in candidate2id:
-                        candidate2id[e1] = len(rep_candidates)
-                        id2candidate[candidate2id[e1]] = e1
-                        rep_candidates.append(reps[0])
-                    if e2 not in candidate2id:
-                        candidate2id[e2] = len(rep_candidates)
-                        rep_candidates.append(reps[1])
-                        id2candidate[candidate2id[e2]] = e2
-                    if e3 not in candidate2id:
-                        candidate2id[e3] = len(rep_candidates)
-                        rep_candidates.append(reps[2])
-                        id2candidate[candidate2id[e3]] = e3
-                    if e4 not in candidate2id:
-                        candidate2id[e4] = len(rep_candidates)
-                        rep_candidates.append(reps[3])
-                        id2candidate[candidate2id[e4]] = e4
-                    analogy_ids.append([candidate2id[e1], candidate2id[e2], candidate2id[e3], candidate2id[e4]])
+                # for each analogy, add all entities to the candidate set if not present yet
+                assert len(analogy_batch) == len(reps[0])
+                for i, es in enumerate(analogy_batch):
+
+                    def _add_to_candidate_set(emb_dim, analogy_tok_rep, analogy_emb_rep, rep_candidates, id2candidate,candidate2id):
+                        assert len(rep_candidates) == len(id2candidate) == len(candidate2id)
+                        for i in [0, 1, 2, 3]:
+                            e = analogy_tok_rep[i]
+                            rep = analogy_emb_rep[i].reshape(1, emb_dim)
+                            if e not in candidate2id:
+                                candidate2id[e] = len(rep_candidates)
+                                rep_candidates.append(rep)
+                                id2candidate[candidate2id[e]] = e
+                        return rep_candidates, id2candidate, candidate2id
+
+                    emb_rep = [reps[0][i], reps[1][i], reps[2][i], reps[3][i]]
+                    rep_candidates, id2candidate, candidate2id = _add_to_candidate_set(emb_dim=ea.shape[1],analogy_tok_rep=es, analogy_emb_rep=emb_rep, rep_candidates=rep_candidates, id2candidate=id2candidate, candidate2id=candidate2id)
+                    analogy_ids.append([candidate2id[es[0]], candidate2id[es[1]], candidate2id[es[2]], candidate2id[es[3]]])
 
                 rep_ea.append(ea)
                 analogies.extend(analogy_batch)
@@ -222,9 +220,7 @@ class AnalogyEvaluator(SentenceEvaluator):
         rep_ea = torch.cat(rep_ea, 0)
         rep_candidates = torch.cat(rep_candidates, 0)
         assert rep_candidates.shape[0] == len(id2candidate) == len(candidate2id)
-        print(rep_ea.shape)
         print(rep_candidates.shape)
-        print(len(analogies2ids))
         ################################
         ####### Compute cosines sims ####
         #################################
@@ -234,10 +230,27 @@ class AnalogyEvaluator(SentenceEvaluator):
         cosine_sims = torch.mm(a_norm, b_norm.transpose(0, 1))
 
         top_ten_idxs = cosine_sims.argsort(descending=True)[:, :10]
+        top4_idxs = top_ten_idxs[:, :4]
 
-        retrieved_idxs = top_ten_idxs[:, 0]
+        def is_success(e3, e1_e2_e4, top4):
+            if e3 not in top4:
+                return False
+            else:
+                for elem in top4:
+                    if elem != e3 and elem not in e1_e2_e4:
+                        return False
+                    if elem == e3:
+                        return True
+        successes = 0
+        for analogy, top4 in zip(analogy_ids, top4_idxs):
+            if is_success(analogy[2], {analogy[0], analogy[1], analogy[3]}, top4):
+                successes += 1
+        accuracy = successes/num_data
+        print(accuracy)
+        """
         correct_idxs = torch.from_numpy(np.array([elm[2] for elm in analogies2ids]).astype(np.long)).to(self.device)
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
+        """
         logging.info("Accuracy:\t{:4f}".format(accuracy))
 
         if output_path is not None:
@@ -246,11 +259,11 @@ class AnalogyEvaluator(SentenceEvaluator):
                 with open(csv_path, mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy.item()])
+                    writer.writerow([epoch, steps, accuracy])
             else:
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy.item()])
+                    writer.writerow([epoch, steps, accuracy])
 
         if self.write_predictions:
 

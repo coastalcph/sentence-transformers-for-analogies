@@ -74,7 +74,7 @@ if __name__ == '__main__':
                         help="csv file with analogies", default='analogy_unique_en.csv.dev')
     parser.add_argument('--out', type=str,
                         help="output path", default='')
-    parser.add_argument('--bs', type=int, default=1,
+    parser.add_argument('--bs', type=int, default=16,
                         help="Batch size")
     parser.add_argument('--epochs', type=int, default=5,
                         help="Number of training epochs")
