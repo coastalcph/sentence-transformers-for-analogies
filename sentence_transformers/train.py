@@ -51,7 +51,7 @@ def main(args):
     analogy_reader = AnalogyReader()
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = AnalogyEvaluator(dev_dataloader)
+    evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer)
 
 
 

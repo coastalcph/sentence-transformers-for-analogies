@@ -46,101 +46,6 @@ class AnalogyEvaluator(SentenceEvaluator):
         self.write_predictions=write_predictions
         self.tokenizer = tokenizer
 
-    """
-    def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1, steps: int = -1) -> float:
-        model.eval()
-        if epoch != -1:
-            if steps == -1:
-                out_txt = " after epoch {}:".format(epoch)
-            else:
-                out_txt = " in epoch {} after {} steps:".format(epoch, steps)
-        else:
-            out_txt = ":"
-
-        logging.info("Evaluation the model on "+self.name+" dataset"+out_txt)
-
-        self.dataloader.collate_fn = model.smart_batching_collate
-
-        iterator = self.dataloader
-        if self.show_progress_bar:
-            iterator = tqdm(iterator, desc="Convert Evaluating")
-
-        rep_ea = []
-        rep_e3 = []
-        analogies = []
-        # encode all analogies
-
-        for step, batch in enumerate(iterator):
-            features, label_ids = batch_to_device(batch, self.device)
-            with torch.no_grad():
-                reps = [model(sent_features)['sentence_embedding'] for sent_features in features]
-
-                ea, e3 = combine_anchor_entities(reps[0], reps[1], reps[2], reps[3])
-                # candidates are all single entities in the dataset
-
-                bs = ea.shape[0]
-                rep_ea.append(ea)
-                rep_candidates.append(e3)
-
-                if self.write_predictions:
-                    # de-tokenize
-                    analogy_batch =  [[] for x in range(bs)]
-                    for eid, sent_features in enumerate(features):
-                        input_ids = sent_features['input_ids']
-                        # iterate through batch
-                        for i, input in enumerate(input_ids):
-                            assert len(input) > 0
-                            surface = self.tokenizer.convert_ids_to_tokens(input)
-                            analogy_batch[i].append(' '.join(surface))
-
-                    analogies.extend(analogy_batch)
-
-        rep_ea = torch.cat(rep_ea, 0)
-        rep_e3 = torch.cat(rep_e3, 0)
-
-        ################################
-        ####### Compute cosines sims ####
-        #################################
-        num_data = rep_ea.shape[0]
-        a_norm = rep_ea / rep_ea.norm(dim=1)[:, None]
-        b_norm = rep_e3 / rep_e3.norm(dim=1)[:, None]
-        cosine_sims = torch.mm(a_norm, b_norm.transpose(0, 1))
-
-        top_ten_idxs = cosine_sims.argsort(descending=True)[:,:10]
-
-        retrieved_idxs = top_ten_idxs[:,0]
-        correct_idxs = torch.from_numpy(np.array([elm for elm in range(num_data)]).astype(np.long)).to(self.device)
-        accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
-        logging.info("Accuracy:\t{:4f}".format(accuracy))
-
-        if output_path is not None:
-            csv_path = os.path.join(output_path, self.csv_file)
-            if not os.path.isfile(csv_path):
-                with open(csv_path, mode="w", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy.item()])
-            else:
-                with open(csv_path, mode="a", encoding="utf-8") as f:
-                    writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy.item()])
-
-
-        if self.write_predictions:
-
-            assert len(analogies) == cosine_sims.shape[0]
-            with open(os.path.join(output_path, 'predictions_{}.csv'.format(0)), 'w') as fpred:
-                pred_writer = csv.writer(fpred, delimiter=';')
-                # write out the model predictions
-                top_ten = top_ten_idxs.cpu().numpy()
-                for aid in range(cosine_sims.shape[0]):
-                    predictions = [analogies[pid][2] for pid in top_ten[aid]]
-                    pred_writer.writerow([analogies[aid][0], analogies[aid][1], analogies[aid][2], analogies[aid][3],  ','.join(predictions)])
-            fpred.close()
-        return accuracy
-
-    """
-
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1,
                  steps: int = -1) -> float:
@@ -242,11 +147,11 @@ class AnalogyEvaluator(SentenceEvaluator):
                     if elem == e3:
                         return True
         successes = 0
-        for analogy, top4 in zip(analogy_ids, top4_idxs):
+        for analogy, top4 in zip(analogies2ids, top4_idxs):
             if is_success(analogy[2], {analogy[0], analogy[1], analogy[3]}, top4):
                 successes += 1
         accuracy = successes/num_data
-        print(accuracy)
+        
         """
         correct_idxs = torch.from_numpy(np.array([elm[2] for elm in analogies2ids]).astype(np.long)).to(self.device)
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
