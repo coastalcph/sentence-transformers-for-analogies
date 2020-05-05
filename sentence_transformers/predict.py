@@ -58,9 +58,6 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
           description='Train SentenceBert with analogy data')
 
-    parser.add_argument('--loss', type=str, default='hardtriplet',
-                        choices = ['mse', 'hardtriplet'],
-                        help="The loss function used")
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
                         choices=['mbert', 'bert-base-uncased', 'small_bert'],
