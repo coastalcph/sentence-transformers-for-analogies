@@ -2,3 +2,4 @@ model: fasttext
 loss: explicit
 dataset: all
 test: False
+reg_term_lambda: 0.001
