@@ -47,6 +47,29 @@ class Analogy:
         )
 
 
+    def get_comment_row(self):
+        return "# {q_1_type} ({q_1_id})  >--{p_type} ({p_id})-->  {q_2_type} ({q_2_id});;;;;;;;".format(
+            q_1_type=self.q_1_type,
+            q_1_id=self.q_1_id,
+            p_type=self.p_type,
+            p_id=self.p_id,
+            q_2_type=self.q_2_type,
+            q_2_id=self.q_2_id,
+        )
+
+    def get_row(self):
+        return "{q_1_source};{q_1_source_id};{q_1_target};{q_1_target_id};{q_2_source};{q_2_source_id};{q_2_target};{q_2_target_id};{distance}""".format(
+            distance=self.distance,
+            q_1_source=self.q_1_source,
+            q_1_source_id=self.q_1_source_id,
+            q_1_target=self.q_1_target,
+            q_1_target_id=self.q_1_target_id,
+            q_2_source=self.q_2_source,
+            q_2_source_id=self.q_2_source_id,
+            q_2_target=self.q_2_target,
+            q_2_target_id=self.q_2_target_id,
+        )
+
 
 
 def read_analogy_data(fname):
@@ -112,10 +135,10 @@ def build_analogy_examples(rows):
             yield Analogy(
                 current_q_1_type,
                 current_q_1_id,
-                current_p_type,
-                current_p_id,
                 current_q2_type,
                 current_q2_id,
+                current_p_type,
+                current_p_id,
                 row['Q1'],
                 row['Q1_id'],
                 row['Q2'],
