@@ -36,33 +36,19 @@ def main(args):
                                        pooling_mode_max_tokens=False)
     model = SentenceTransformer(modules=[word_embedding_model, pooling_model])
 
-    # Set up loss
-    if args.loss == 'mse':
-        train_loss = losses.AnalogyMSELoss(model=model)
-    elif args.loss == 'hardtriplet':
-        train_loss = losses.AnalogyBatchHardTripletLoss(sentence_embedder=model)
-
 
     # Load data
     analogy_reader = AnalogyReader()
-    train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
-    train_dataloader = DataLoader(train_data, shuffle=False, batch_size=batch_size)
+    test_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.test_data)), model=model)
 
-    analogy_reader = AnalogyReader()
-    dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
-    dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer)
+    test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
+    tokenizer = model._first_module().tokenizer
+    evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer)
+
+    model.evaluate(evaluator=evaluator, output_path= output_path)
 
 
 
-    # Train
-    model.fit(train_objectives=[(train_dataloader, train_loss)],
-         evaluator=evaluator,
-         epochs=args.epochs,
-         evaluation_steps=args.evaluation_steps,
-         warmup_steps=0,
-         output_path=output_path
-         )
 
 
 
@@ -72,27 +58,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
           description='Train SentenceBert with analogy data')
 
-    parser.add_argument('--loss', type=str, default='hardtriplet',
-                        choices = ['mse', 'hardtriplet'],
-                        help="The loss function used")
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
                         choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
-    parser.add_argument('--train_data', type=str,
+    parser.add_argument('--test_data', type=str,
                         help="csv file with analogies", default='analogy_unique_en.csv.small')
-    parser.add_argument('--dev_data', type=str,
-                        help="csv file with analogies", default='analogy_unique_en.csv.dev')
     parser.add_argument('--out', type=str,
                         help="output path", default='')
-    parser.add_argument('--bs', type=int, default=8,
+    parser.add_argument('--bs', type=int, default=16,
                         help="Batch size")
-    parser.add_argument('--epochs', type=int, default=5,
-                        help="Number of training epochs")
-    parser.add_argument('--evaluation_steps', type=int, default=10,
-                        help="Evaluate every n training steps")
+
 
 
     args = parser.parse_args()
