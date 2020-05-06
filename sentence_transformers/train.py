@@ -51,7 +51,7 @@ def main(args):
     analogy_reader = AnalogyReader()
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = AnalogyEvaluator(dev_dataloader)
+    evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer)
 
 
 
@@ -77,7 +77,7 @@ if __name__ == '__main__':
                         help="The loss function used")
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
-                        choices=['mbert', 'bert-base-uncased', 'small_bert'],
+                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')

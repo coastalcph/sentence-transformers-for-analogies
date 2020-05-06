@@ -4,6 +4,7 @@ import argparse
 import logging
 import yaml
 from typing import List
+import copy
 
 from dataclasses import dataclass
 
@@ -155,11 +156,14 @@ class CorrelationMetric(EpochMetric):
 
 
 class AnalogyModel(nn.Module):
-    def __init__(self, trainable_embeddings, full_embeddings):
+    def __init__(self, trainable_embeddings, full_embeddings, reg_term_lambda=0.001):
         super(AnalogyModel, self).__init__()
         self.trainable_embeddings = trainable_embeddings
+        self.original_embeddings = copy.deepcopy(trainable_embeddings)
         self.full_embeddings = full_embeddings
         self.loss = nn.CosineEmbeddingLoss()
+        self.regularization = nn.MSELoss(reduction='sum')
+        self.reg_term_lambda = reg_term_lambda
 
     def set_mapper(self, mapper):
         self.mapper = mapper
@@ -167,7 +171,9 @@ class AnalogyModel(nn.Module):
     def loss_function(self, x, y):
         e1, e2, e3, e4, offset_trick, scores, distances = x
         if self.training:
-            return self.loss(offset_trick, self.trainable_embeddings(e3), y)
+            entities = torch.cat([e1, e2, e3, e4]).unique()
+            reg_term = self.regularization(self.original_embeddings(entities), self.trainable_embeddings(entities))
+            return self.loss(offset_trick, self.trainable_embeddings(e3), y) + self.reg_term_lambda * reg_term
         else:
             return self.loss(offset_trick, self.full_embeddings(e3), y)
 
@@ -229,11 +235,12 @@ class IdentityMapper:
 
 
 class NeuralMapper:
-    def __init__(self, mapping_model):
+    def __init__(self, mapping_model, device):
         self.model = mapping_model
+        self.device = device
 
     def apply(self, elems):
-        return torch.tensor(self.model.predict(elems.detach().numpy()))
+        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()), device=self.device)
 
 
 
@@ -343,16 +350,18 @@ def evaluate(configs, language):
     word_to_idx_in_train = build_word_mapping(words_in_train)
 
     vectorized_train = vectorize_dataset(train, word_to_idx_in_train)
+    vectorized_train_for_eval = vectorize_dataset(train, word_to_idx)
     vectorized_test = vectorize_dataset(test, word_to_idx)
 
     train_loader = DataLoader(vectorized_train, batch_size=128, collate_fn=collate)
+    train_for_eval_loader = DataLoader(vectorized_train_for_eval, batch_size=128, collate_fn=collate)
     test_loader = DataLoader(vectorized_test, batch_size=128, collate_fn=collate)
 
     trainable_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
     trainable_embeddings.load_words_embeddings(vectors_in_train)
     full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     full_embeddings.load_words_embeddings(vectors)
-    model = AnalogyModel(trainable_embeddings, full_embeddings)
+    model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
 
@@ -372,22 +381,27 @@ def evaluate(configs, language):
     # Train mapper
     original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
     original_embeddings.load_words_embeddings(vectors_in_train)
-    X = original_embeddings.weight.data.numpy()
-    Y = trainable_embeddings.weight.data.numpy()
+    X = original_embeddings.weight.data.cpu().numpy()
+    Y = trainable_embeddings.weight.data.cpu().numpy()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
     mapper_model = MLPRegressor(
-        hidden_layer_sizes=(300, 300, 300, 300),
+        hidden_layer_sizes=(1024, 1024),
         activation='tanh',
         max_iter=500,
         verbose=True,
-        alpha=0
+        alpha=0,
+        tol=0.00001
     )
     mapper_model.fit(X_train, Y_train)
     logging.info("Score on train: {}".format(mapper_model.score(X_train, Y_train)))
     logging.info("Score on test: {}".format(mapper_model.score(X_test, Y_test)))
 
-    neural_mapper = NeuralMapper(mapper_model)
+    neural_mapper = NeuralMapper(mapper_model, device)
     model.set_mapper(neural_mapper)
+
+    loss, acc = poutyne_model.evaluate_generator(train_for_eval_loader)
+    logging.info("Accuracy train mapped: {}".format(acc))
+
     loss, acc = poutyne_model.evaluate_generator(test_loader)
     logging.info("Accuracy: {}".format(acc))
 
