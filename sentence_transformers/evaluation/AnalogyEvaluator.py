@@ -42,7 +42,7 @@ class AnalogyEvaluator(SentenceEvaluator):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file = "analogy_accuracy_evaluation"+name+"_results.csv"
-        self.csv_headers = ["epoch", "steps", "accuracy"]
+        self.csv_headers = ["epoch", "steps", "accuracy", "candidates"]
         self.write_predictions=write_predictions
         self.tokenizer = tokenizer
 
@@ -153,13 +153,11 @@ class AnalogyEvaluator(SentenceEvaluator):
             d += 1
             analogy_str = '--'.join(['{}:::{}'.format(analogies[d][i], candidate2id[analogies[d][i]]) for i in range(4)])
             print('Analogy {}: {}'.format(d, analogy_str))
-
+            top4 = top4.cpu().numpy()
             if is_success(analogy[2], {analogy[0], analogy[1], analogy[3]}, top4):
-                top4 = top4.cpu().numpy()
                 successes += 1
                 print('Success: {}\n'.format([id2candidate[pid] for pid in top4]))
             else:
-                top4 = top4.cpu().numpy()
                 print('Fail: {}\n'.format([id2candidate[pid] for pid in top4]))
         print('Successes: {}, num_data {}'.format(successes, num_data))
         accuracy = successes/num_data
@@ -169,18 +167,18 @@ class AnalogyEvaluator(SentenceEvaluator):
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
         """
         logging.info("Accuracy:\t{:4f}".format(accuracy))
-
+        num_candidates = rep_candidates.shape[0]
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy])
+                    writer.writerow([epoch, steps, accuracy, num_candidates])
             else:
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy])
+                    writer.writerow([epoch, steps, accuracy, num_candidates])
 
         if self.write_predictions:
 
