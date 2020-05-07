@@ -153,11 +153,13 @@ class AnalogyEvaluator(SentenceEvaluator):
             d += 1
             analogy_str = '--'.join(['{}:::{}'.format(analogies[d][i], candidate2id[analogies[d][i]]) for i in range(4)])
             print('Analogy {}: {}'.format(d, analogy_str))
-            top4 = top4.cpu().numpy()
+
             if is_success(analogy[2], {analogy[0], analogy[1], analogy[3]}, top4):
+                top4 = top4.cpu().numpy()
                 successes += 1
                 print('Success: {}\n'.format([id2candidate[pid] for pid in top4]))
             else:
+                top4 = top4.cpu().numpy()
                 print('Fail: {}\n'.format([id2candidate[pid] for pid in top4]))
         print('Successes: {}, num_data {}'.format(successes, num_data))
         accuracy = successes/num_data
