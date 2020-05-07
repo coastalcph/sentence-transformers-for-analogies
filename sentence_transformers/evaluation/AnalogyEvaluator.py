@@ -117,7 +117,7 @@ class AnalogyEvaluator(SentenceEvaluator):
                     emb_rep = [reps[0][i], reps[1][i], reps[2][i], reps[3][i]]
                     rep_candidates, id2candidate, candidate2id = _add_to_candidate_set(emb_dim=ea.shape[1],analogy_tok_rep=es, analogy_emb_rep=emb_rep, rep_candidates=rep_candidates, id2candidate=id2candidate, candidate2id=candidate2id)
                     analogy_ids.append([candidate2id[es[0]], candidate2id[es[1]], candidate2id[es[2]], candidate2id[es[3]]])
-
+                    assert id2candidate[analogy_ids[-1][2]] == es[2]
                 rep_ea.append(ea)
                 analogies.extend(analogy_batch)
                 analogies2ids.extend(analogy_ids)
@@ -139,6 +139,7 @@ class AnalogyEvaluator(SentenceEvaluator):
 
         def is_success(e3, e1_e2_e4, top4):
             if e3 not in top4:
+                print('{} not in top4'.format(e3))
                 return False
             else:
                 for elem in top4:
@@ -147,11 +148,20 @@ class AnalogyEvaluator(SentenceEvaluator):
                     if elem == e3:
                         return True
         successes = 0
+        d = -1
         for analogy, top4 in zip(analogies2ids, top4_idxs):
+            d += 1
+            analogy_str = '--'.join(['{}:::{}'.format(analogies[d][i], candidate2id[analogies[d][i]]) for i in range(4)])
+            print('Analogy {}: {}'.format(d, analogy_str))
+            top4 = top4.cpu().numpy()
             if is_success(analogy[2], {analogy[0], analogy[1], analogy[3]}, top4):
                 successes += 1
+                print('Success: {}\n'.format([id2candidate[pid] for pid in top4]))
+            else:
+                print('Fail: {}\n'.format([id2candidate[pid] for pid in top4]))
+        print('Successes: {}, num_data {}'.format(successes, num_data))
         accuracy = successes/num_data
-        
+
         """
         correct_idxs = torch.from_numpy(np.array([elm[2] for elm in analogies2ids]).astype(np.long)).to(self.device)
         accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
