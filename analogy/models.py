@@ -26,7 +26,7 @@ class MyEmbeddings(nn.Embedding):
 
 
 class AnalogyModel(nn.Module):
-    def __init__(self, trainable_embeddings, full_embeddings, reg_term_lambda=0.001):
+    def __init__(self, trainable_embeddings, full_embeddings, reg_term_lambda=0.001, delta=0.1):
         super(AnalogyModel, self).__init__()
         self.trainable_embeddings = trainable_embeddings
         self.original_embeddings = copy.deepcopy(trainable_embeddings)
@@ -34,7 +34,7 @@ class AnalogyModel(nn.Module):
         self.loss = nn.CosineEmbeddingLoss()
         self.regularization = nn.MSELoss(reduction='sum')
         self.reg_term_lambda = reg_term_lambda
-        self.delta = 0.1
+        self.delta = delta
 
     def set_mapper(self, mapper):
         self.mapper = mapper
@@ -154,9 +154,8 @@ class IdentityMapper:
 
 
 class NeuralMapper:
-    def __init__(self, mapping_model, device):
+    def __init__(self, mapping_model):
         self.model = mapping_model
-        self.device = device
 
     def apply(self, elems):
-        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()), device=self.device)
+        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()))

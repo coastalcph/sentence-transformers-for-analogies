@@ -231,7 +231,7 @@ def evaluate(configs, language):
     trainable_embeddings.load_words_embeddings(vectors_in_train)
     full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     full_embeddings.load_words_embeddings(vectors)
-    model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'])
+    model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'], configs['delta'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
 
@@ -249,7 +249,7 @@ def evaluate(configs, language):
     logging.info("Correlation: {}".format(corr))
 
     logging.info("Launching train")
-    poutyne_model.fit_generator(train_loader, epochs=5)
+    poutyne_model.fit_generator(train_loader, epochs=10)
 
     # Train mapper
     original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
@@ -269,7 +269,9 @@ def evaluate(configs, language):
     logging.info("Mapper score on train: {}".format(mapper_model.score(X_train, Y_train)))
     logging.info("Mapper score on test: {}".format(mapper_model.score(X_test, Y_test)))
 
-    neural_mapper = NeuralMapper(mapper_model, device)
+    poutyne_model.to('cpu')
+
+    neural_mapper = NeuralMapper(mapper_model)
     model.set_mapper(neural_mapper)
 
     loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
