@@ -154,8 +154,9 @@ class IdentityMapper:
 
 
 class NeuralMapper:
-    def __init__(self, mapping_model):
+    def __init__(self, mapping_model, device):
         self.model = mapping_model
+        self.device = device
 
     def apply(self, elems):
-        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()))
+        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()), device=self.device)

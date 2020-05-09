@@ -269,9 +269,7 @@ def evaluate(configs, language):
     logging.info("Mapper score on train: {}".format(mapper_model.score(X_train, Y_train)))
     logging.info("Mapper score on test: {}".format(mapper_model.score(X_test, Y_test)))
 
-    poutyne_model.to('cpu')
-
-    neural_mapper = NeuralMapper(mapper_model)
+    neural_mapper = NeuralMapper(mapper_model, device)
     model.set_mapper(neural_mapper)
 
     loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
