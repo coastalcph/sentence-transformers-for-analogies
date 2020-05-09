@@ -231,7 +231,6 @@ def evaluate(configs, language):
     trainable_embeddings.load_words_embeddings(vectors_in_train)
     full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     full_embeddings.load_words_embeddings(vectors)
-    import pdb; pdb.set_trace()
     model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
