@@ -1,4 +1,5 @@
 import numpy as np
+from scipy.stats.stats import pearsonr
 from poutyne.framework.metrics import EpochMetric
 
 
@@ -10,7 +11,9 @@ class CorrelationMetric(EpochMetric):
 
     def forward(self, x, y):
         # Accumulate metrics here
-        e1, e2, e3, e4, offset_trick, scores, distances = x
+        e3 = x['e3']
+        scores = x['scores']
+        distances = x['distances']
         for i, (s, d) in enumerate(zip(scores, distances)):
             self.scores.append(1 - float(s[e3[i]]))
             self.distances.append(float(d))  # We append the distance

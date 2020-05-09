@@ -231,6 +231,7 @@ def evaluate(configs, language):
     trainable_embeddings.load_words_embeddings(vectors_in_train)
     full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     full_embeddings.load_words_embeddings(vectors)
+    import pdb; pdb.set_trace()
     model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
@@ -238,15 +239,18 @@ def evaluate(configs, language):
     poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy], epoch_metrics=[CorrelationMetric()])
     poutyne_model.to(device)
 
-    logging.info("Launching evaluation")
-    loss, acc = poutyne_model.evaluate_generator(test_loader)
-    logging.info("Accuracy: {}".format(acc[0]))
-    logging.info("Correlation: {}".format(acc[1]))
+    loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
+    logging.info("Statistics on training set before train (IdentityMapper used);")
+    logging.info("Accuracy: {}".format(acc))
+    logging.info("Correlation: {}".format(corr))
+
+    loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
+    logging.info("Statistics on test set before train (IdentityMapper used);")
+    logging.info("Accuracy: {}".format(acc))
+    logging.info("Correlation: {}".format(corr))
 
     logging.info("Launching train")
     poutyne_model.fit_generator(train_loader, epochs=5)
-    loss, acc = poutyne_model.evaluate_generator(test_loader)
-    logging.info("Accuracy: {}".format(acc))
 
     # Train mapper
     original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
@@ -255,7 +259,7 @@ def evaluate(configs, language):
     Y = trainable_embeddings.weight.data.cpu().numpy()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
     mapper_model = MLPRegressor(
-        hidden_layer_sizes=(1024, 1024),
+        hidden_layer_sizes=(512, 512, 512),
         activation='tanh',
         max_iter=500,
         verbose=True,
@@ -263,17 +267,21 @@ def evaluate(configs, language):
         tol=0.00001
     )
     mapper_model.fit(X_train, Y_train)
-    logging.info("Score on train: {}".format(mapper_model.score(X_train, Y_train)))
-    logging.info("Score on test: {}".format(mapper_model.score(X_test, Y_test)))
+    logging.info("Mapper score on train: {}".format(mapper_model.score(X_train, Y_train)))
+    logging.info("Mapper score on test: {}".format(mapper_model.score(X_test, Y_test)))
 
     neural_mapper = NeuralMapper(mapper_model, device)
     model.set_mapper(neural_mapper)
 
-    loss, acc = poutyne_model.evaluate_generator(train_for_eval_loader)
-    logging.info("Accuracy train mapped: {}".format(acc))
-
-    loss, acc = poutyne_model.evaluate_generator(test_loader)
+    loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
+    logging.info("Statistics on train set after train (NeuralMapper used);")
     logging.info("Accuracy: {}".format(acc))
+    logging.info("Correlation: {}".format(corr))
+
+    loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
+    logging.info("Statistics on test set after train (NeuralMapper used);")
+    logging.info("Accuracy: {}".format(acc))
+    logging.info("Correlation: {}".format(corr))
 
 
 

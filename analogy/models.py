@@ -25,8 +25,6 @@ class MyEmbeddings(nn.Embedding):
                 self.set_item_embedding(idx, embedding)
 
 
-
-
 class AnalogyModel(nn.Module):
     def __init__(self, trainable_embeddings, full_embeddings, reg_term_lambda=0.001):
         super(AnalogyModel, self).__init__()
@@ -36,18 +34,38 @@ class AnalogyModel(nn.Module):
         self.loss = nn.CosineEmbeddingLoss()
         self.regularization = nn.MSELoss(reduction='sum')
         self.reg_term_lambda = reg_term_lambda
+        self.delta = 0.1
 
     def set_mapper(self, mapper):
         self.mapper = mapper
 
     def loss_function(self, x, y):
-        e1, e2, e3, e4, offset_trick, scores, distances = x
         if self.training:
+            e1 = x['e1']
+            e2 = x['e2']
+            e3 = x['e3']
+            e4 = x['e4']
+            offset_trick = x['offset_trick']
+            scores = x['scores']
+            distances = x['distances']
+            t_l = x['t_l']
+            t_r = x['t_r']
+            batch_size = e1.shape[0]
+            e3_embeddings = self.trainable_embeddings(e3)
             entities = torch.cat([e1, e2, e3, e4]).unique()
             reg_term = self.regularization(self.original_embeddings(entities), self.trainable_embeddings(entities))
-            return self.loss(offset_trick, self.trainable_embeddings(e3), y) + self.reg_term_lambda * reg_term
+            score = torch.bmm(offset_trick.view(batch_size, 1, -1), e3_embeddings.view(batch_size, -1, 1)).squeeze()
+            neg_left_score = torch.bmm(offset_trick.view(batch_size, 1, -1), t_l.view(batch_size, -1, 1)).squeeze()
+            neg_right_score = torch.bmm(e3_embeddings.view(batch_size, 1, -1), t_r.view(batch_size, -1, 1)).squeeze()
+            left_loss = nn.functional.relu(self.delta + neg_left_score - score).sum()
+            right_loss = nn.functional.relu(self.delta + neg_right_score - score).sum()
+            loss = left_loss + right_loss + self.reg_term_lambda * reg_term
+            return loss
+            # return self.loss(offset_trick, self.trainable_embeddings(e3), y) + self.reg_term_lambda * reg_term
         else:
-            return self.loss(offset_trick, self.full_embeddings(e3), y)
+            e3 = x['e3']
+            offset_trick = x['offset_trick']
+            return self.loss(offset_trick, self.mapper.apply(self.full_embeddings(e3)), y)
 
     def is_success(self, e3, e1_e2_e4, top4):
         if e3 not in top4:
@@ -60,7 +78,11 @@ class AnalogyModel(nn.Module):
                     return True
 
     def accuracy(self, x, y):
-        e1s, e2s, e3s, e4s, offset_trick, scores, distances = x
+        e1s = x['e1']
+        e2s = x['e2']
+        e3s = x['e3']
+        e4s = x['e4']
+        scores = x['scores']
         sorted_indexes_by_scores = scores.argsort(descending=True)[:, :4]
         accuracies = list()
         for e1, e2, e3, e4, top4_indexes in zip(e1s, e2s, e3s, e4s, sorted_indexes_by_scores):
@@ -83,8 +105,23 @@ class AnalogyModel(nn.Module):
             e3_embeddings = self.trainable_embeddings(e3)
             e4_embeddings = self.trainable_embeddings(e4)
             offset_trick = e1_embeddings - e2_embeddings + e4_embeddings
+            t_l = offset_trick[offset_trick.matmul(offset_trick.transpose(0, 1)).argsort()[:, -2]]
+            t_r = e3_embeddings[e3_embeddings.matmul(e3_embeddings.transpose(0, 1)).argsort()[:, -2]]
             a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
             b_norm = self.trainable_embeddings.weight / self.trainable_embeddings.weight.norm(dim=1)[:, None]
+            cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
+            return {
+                "e1": e1,
+                "e2": e2,
+                "e3": e3,
+                "e4": e4,
+                "offset_trick": offset_trick,
+                "scores": cosine_sims,
+                "distances": distances,
+                "t_l": t_l,
+                "t_r": t_r,
+
+            }
         else:
             e1_embeddings = self.full_embeddings(e1)
             e2_embeddings = self.full_embeddings(e2)
@@ -96,9 +133,19 @@ class AnalogyModel(nn.Module):
             mapped_e4 = self.mapper.apply(e4_embeddings)
             offset_trick = mapped_e1 - mapped_e2 + mapped_e4 
             a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
-            b_norm = self.mapper.apply(self.full_embeddings.weight) / self.mapper.apply(self.full_embeddings.weight).norm(dim=1)[:, None]
-        cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
-        return e1, e2, e3, e4, offset_trick, cosine_sims, distances
+            mapped_embedding_table = self.mapper.apply(self.full_embeddings.weight)
+            b_norm = mapped_embedding_table / mapped_embedding_table.norm(dim=1)[:, None]
+            cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
+            return {
+                "e1": e1,
+                "e2": e2,
+                "e3": e3,
+                "e4": e4,
+                "offset_trick": offset_trick,
+                "scores": cosine_sims,
+                "distances": distances,
+            }
+
 
 
 class IdentityMapper:
