@@ -29,14 +29,16 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
                 q1, p, q2 = match.group(1), match.group(2), match.group(3)
                 distances = compute_biggraph_distances_pair(q1, q2, emb_file, pointers)
                 if distances:
-                    d = distances[0][0]
+                    d_all = distances[0][0]
+                    d_pairwise = None
                 else:
-                    d = None
+                    d_all = None
+                    d_pairwise = None
             else:
                 q1, q2, q3, q4 = row['Q1_id'], row['Q2_id'], row['Q3_id'], row['Q4_id']
-                d = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
+                d_all, d_pairwise = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
                 
-            outrow = [row['Q1'], row['Q1_id'], row['Q2'], row['Q2_id'], row['Q3'], row['Q3_id'], row['Q4'], row['Q4_id'], d]
+            outrow = [row['Q1'], row['Q1_id'], row['Q2'], row['Q2_id'], row['Q3'], row['Q3_id'], row['Q4'], row['Q4_id'], d_all, d_pairwise]
             writer.writerow(outrow)
     f.close()
 
@@ -54,15 +56,17 @@ def compute_biggraph_distances_pair(qid1, qid2, emb_file, pointers):
     return None
 
 
-def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, pointers):
+def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, pointers, setting="pairwise"):
     """
-    compute average between the distances between all elements of the quadruplet
+    compute distances between elements of the analogy. Returns a a tuple of distances, 1. between all possible pairs in the analogy
+    and 2. d= (cos(e1,e2) + cos(e3,e4))/2
     :param qid1:
     :param qid2:
     :param qid3:
     :param qid4:
     :param emb_file:
     :param pointers:
+    :param setting: if pairwise, distances are computed as
     :return:
     """
     if qid1 in pointers and qid2 in pointers and qid3 in pointers and qid4 in pointers:
@@ -72,7 +76,9 @@ def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, poin
         emb4 = graphreader.get_embedding(emb_file, pointers[qid4])
         embs = np.array([emb1, emb2, emb3, emb4])
         dists = cosine_distances(embs, embs)
-        return np.sum(dists)/(dists.shape[0]*(dists.shape[0]-1))
+        d_all = np.sum(dists)/(dists.shape[0]*(dists.shape[0]-1))
+        d_pairwise = (dists[0,1] + dists[2,3])/2
+        return d_all, d_pairwise
     if qid1 not in pointers:
         print('{} not in embeddings'.format(qid1))
     if qid2 not in pointers:
@@ -81,7 +87,7 @@ def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, poin
         print('{} not in embeddings'.format(qid3))
     if qid4 not in pointers:
         print('{} not in embeddings'.format(qid4))
-    return None
+    return None, None
 
 if __name__=="__main__":
 

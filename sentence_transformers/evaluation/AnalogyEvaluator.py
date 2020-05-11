@@ -189,8 +189,10 @@ class AnalogyEvaluator(SentenceEvaluator):
                 top_ten = top_ten_idxs.cpu().numpy()
                 for aid in range(cosine_sims.shape[0]):
                     predictions = [id2candidate[pid] for pid in top_ten[aid]]
+                    e1, e2, e3, e4 = analogies2ids[aid][0], analogies2ids[aid][1], analogies2ids[aid][2], analogies2ids[aid][3]
+                    success = int(is_success(e3, {e1, e2, e4}, top_ten[aid][:4]))
                     pred_writer.writerow([analogies[aid][0], analogies[aid][1], analogies[aid][2], analogies[aid][3],
-                                          ','.join(predictions)])
+                                          ','.join(predictions), success])
             fpred.close()
         return accuracy
 
