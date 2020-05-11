@@ -5,6 +5,7 @@ import logging
 import yaml
 from typing import List
 import copy
+import random
 
 from dataclasses import dataclass
 
@@ -186,6 +187,30 @@ def split_examples(dataset, ratio=0.8):
     test = dataset[int(len(dataset)*ratio):]
     return train, test
 
+def filter_vectors_for_entities(analogies, vectors):
+    entities_set = set()
+    for a in analogies:
+        entities_set.add(a.e1)
+        entities_set.add(a.e2)
+        entities_set.add(a.e3)
+        entities_set.add(a.e4)
+    filtered_vector_set = {k: v for k, v in vectors.items() if k in entities_set}
+    return filtered_vector_set
+
+def load_set(language, dataset_path, set_name, test=False):
+    set_path = f"{dataset_path}.{set_name}"
+    analogies = build_analogy_examples_from_file(set_path)
+    if test:
+        analogies = list(analogies)[:1000]
+    processed_analogies = preprocess_analogies(analogies)
+    vocab = build_vocab(processed_analogies)
+    vector_path = './data/embeddings/wiki.{}.align.vec'.format(language)
+    vectors = get_vectors_for_vocab(vector_path, vocab)
+    analogies_with_merged_entities = merge_entities_and_augment_vectors(processed_analogies, vectors)
+    filtered_vector_set = filter_vectors_for_entities(analogies_with_merged_entities, vectors)
+    word_to_idx = build_word_mapping(vectors.keys())
+    return analogies_with_merged_entities, filtered_vector_set, word_to_idx
+
 
 def evaluate(configs, language):
     cuda_device = 0
@@ -193,56 +218,95 @@ def evaluate(configs, language):
     logging.info("Sending model to device {}".format(device))
 
     logging.info("Working on language {}".format(language))
-    dataset_path = "./data/analogy_dists/analogy_{dataset}_{language}_dists.csv".format(
+    dataset_path = "./data/analogy_dists_splits/analogy_{dataset}_{language}_dists.csv".format(
         dataset=configs['dataset'],
         language=language
     )
-    analogies = build_analogy_examples_from_file(dataset_path)
-    if configs['test']:
-        analogies = list(analogies)[:10000]
 
-    processed_analogies = preprocess_analogies(analogies)
-    vocab = build_vocab(processed_analogies)
-    vector_path = './data/embeddings/wiki.{}.align.vec'.format(language)
-    vectors = get_vectors_for_vocab(vector_path, vocab)
-    analogies_with_merged_entities = merge_entities_and_augment_vectors(processed_analogies, vectors)
-    word_to_idx = build_word_mapping(vectors.keys())
+    # TODO: Load train, valid, test splits
+    # Create seperate vector spaces, for train, valid and test with their corresponding word mapping
+    train_set, train_vectors, train_word_to_idx = load_set(language, dataset_path, 'train', configs['test'])
+    valid_set, valid_vectors, valid_word_to_idx = load_set(language, dataset_path, 'valid', configs['test'])
+    test_set, test_vectors, test_word_to_idx = load_set(language, dataset_path, 'test', configs['test'])
 
-    train, test = split_examples(analogies_with_merged_entities)
-
-    words_in_train = set()
-    for e in train:
-        words_in_train.add(e.e1)
-        words_in_train.add(e.e2)
-        words_in_train.add(e.e3)
-        words_in_train.add(e.e4)
-    vectors_in_train = {k: v for k, v in vectors.items() if k in words_in_train}
-    word_to_idx_in_train = build_word_mapping(words_in_train)
-
-    vectorized_train = vectorize_dataset(train, word_to_idx_in_train)
-    vectorized_train_for_eval = vectorize_dataset(train, word_to_idx)
-    vectorized_test = vectorize_dataset(test, word_to_idx)
+    vectorized_train = vectorize_dataset(train_set, train_word_to_idx)
+    vectorized_valid = vectorize_dataset(valid_set, valid_word_to_idx)
+    vectorized_test = vectorize_dataset(test_set, test_word_to_idx)
 
     train_loader = DataLoader(vectorized_train, batch_size=128, collate_fn=collate)
-    train_for_eval_loader = DataLoader(vectorized_train_for_eval, batch_size=128, collate_fn=collate)
+    valid_loader = DataLoader(vectorized_valid, batch_size=128, collate_fn=collate)
     test_loader = DataLoader(vectorized_test, batch_size=128, collate_fn=collate)
 
-    trainable_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
-    trainable_embeddings.load_words_embeddings(vectors_in_train)
-    full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
-    full_embeddings.load_words_embeddings(vectors)
-    model = AnalogyModel(trainable_embeddings, full_embeddings, configs['reg_term_lambda'], configs['delta'])
+    train_embeddings = MyEmbeddings(train_word_to_idx, embedding_dim=300)
+    train_embeddings.load_words_embeddings(train_vectors)
+
+    valid_embeddings = MyEmbeddings(valid_word_to_idx, embedding_dim=300)
+    valid_embeddings.load_words_embeddings(valid_vectors)
+
+    test_embeddings = MyEmbeddings(test_word_to_idx, embedding_dim=300)
+    test_embeddings.load_words_embeddings(test_vectors)
+
+    # Cold evaluation on valid and test
+    # Train AR on train set
+    # Learn neural mapper on train set
+    # Evaluate on valid and test
+
+    # analogies = build_analogy_examples_from_file(dataset_path)
+    # if configs['test']:
+    #     analogies = list(analogies)[:10000]
+
+    # processed_analogies = preprocess_analogies(analogies)
+    # vocab = build_vocab(processed_analogies)
+    # vector_path = './data/embeddings/wiki.{}.align.vec'.format(language)
+    # vectors = get_vectors_for_vocab(vector_path, vocab)
+    # analogies_with_merged_entities = merge_entities_and_augment_vectors(processed_analogies, vectors)
+    # word_to_idx = build_word_mapping(vectors.keys())
+
+    # train, test = split_examples(analogies_with_merged_entities)
+
+    # words_in_train = set()
+    # for e in train:
+    #     words_in_train.add(e.e1)
+    #     words_in_train.add(e.e2)
+    #     words_in_train.add(e.e3)
+    #     words_in_train.add(e.e4)
+    # vectors_in_train = {k: v for k, v in vectors.items() if k in words_in_train}
+    # word_to_idx_in_train = build_word_mapping(words_in_train)
+
+    # vectorized_all = vectorize_dataset(analogies_with_merged_entities, word_to_idx)
+    # vectorized_train = vectorize_dataset(train, word_to_idx_in_train)
+    # vectorized_train_for_eval = vectorize_dataset(train, word_to_idx)
+    # vectorized_test = vectorize_dataset(test, word_to_idx)
+
+    # train_loader = DataLoader(vectorized_train, batch_size=128, collate_fn=collate)
+    # train_for_eval_loader = DataLoader(vectorized_train_for_eval, batch_size=128, collate_fn=collate)
+    # test_loader = DataLoader(vectorized_test, batch_size=128, collate_fn=collate, shuffle=False)
+    # all_loader = DataLoader(vectorized_all, batch_size=128, collate_fn=collate, shuffle=False)
+
+    # trainable_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
+    # trainable_embeddings.load_words_embeddings(vectors_in_train)
+    # full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
+    # full_embeddings.load_words_embeddings(vectors)
+
+    model = AnalogyModel(train_embeddings, valid_embeddings, configs['reg_term_lambda'], configs['delta'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
 
     poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy], epoch_metrics=[CorrelationMetric()])
     poutyne_model.to(device)
 
-    loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
-    logging.info("Statistics on training set before train (IdentityMapper used);")
+    # loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
+    # logging.info("Statistics on training set before train (IdentityMapper used);")
+    # logging.info("Accuracy: {}".format(acc))
+    # logging.info("Correlation: {}".format(corr))
+
+    loss, (acc, corr) = poutyne_model.evaluate_generator(valid_loader)
+    logging.info("Statistics on valid set before train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
 
+    # Setting the embedding table
+    model.test_embeddings = test_embeddings
     loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
     logging.info("Statistics on test set before train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
@@ -252,18 +316,17 @@ def evaluate(configs, language):
     poutyne_model.fit_generator(train_loader, epochs=10)
 
     # Train mapper
-    original_embeddings = MyEmbeddings(word_to_idx_in_train, embedding_dim=300)
-    original_embeddings.load_words_embeddings(vectors_in_train)
+    original_embeddings = MyEmbeddings(train_word_to_idx, embedding_dim=300)
+    original_embeddings.load_words_embeddings(train_vectors)
     X = original_embeddings.weight.data.cpu().numpy()
-    Y = trainable_embeddings.weight.data.cpu().numpy()
+    Y = train_embeddings.weight.data.cpu().numpy()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
     mapper_model = MLPRegressor(
         hidden_layer_sizes=(512, 512, 512),
         activation='tanh',
-        max_iter=500,
+        max_iter=10,
         verbose=True,
         alpha=0,
-        tol=0.00001
     )
     mapper_model.fit(X_train, Y_train)
     logging.info("Mapper score on train: {}".format(mapper_model.score(X_train, Y_train)))
@@ -272,11 +335,18 @@ def evaluate(configs, language):
     neural_mapper = NeuralMapper(mapper_model, device)
     model.set_mapper(neural_mapper)
 
-    loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
-    logging.info("Statistics on train set after train (NeuralMapper used);")
+    # loss, (acc, corr) = poutyne_model.evaluate_generator(train_for_eval_loader)
+    # logging.info("Statistics on train set after train (NeuralMapper used);")
+    # logging.info("Accuracy: {}".format(acc))
+    # logging.info("Correlation: {}".format(corr))
+
+    model.test_embeddings = valid_embeddings
+    loss, (acc, corr) = poutyne_model.evaluate_generator(valid_loader)
+    logging.info("Statistics on valid set after train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
 
+    model.test_embeddings = test_embeddings
     loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
     logging.info("Statistics on test set after train (NeuralMapper used);")
     logging.info("Accuracy: {}".format(acc))
@@ -290,6 +360,7 @@ def main(configs):
 
 
 if __name__ == '__main__':
+    random.seed(42)
     np.random.seed(42)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)

@@ -20,16 +20,18 @@ class Analogy:
     q_2_target: str
     q_2_target_id: str
     distance: float
+    distance_pairwise: float
 
     def __repr__(self):
         return """
         ====================
-    Analogy ({distance}): {q_1_type} ({q_1_id}) -> {p_type} ({p_id}) -> {q_2_type} ({q_2_id})
+    Analogy ({distance}, {distance_pairwise}): {q_1_type} ({q_1_id}) -> {p_type} ({p_id}) -> {q_2_type} ({q_2_id})
     ====================
     {q_1_source} ({q_1_source_id}) -> {q_1_target} ({q_1_target_id}) / {q_2_source} ({q_2_source_id}) -> {q_2_target} ({q_2_target_id})
     ____________________
         """.format(
             distance=self.distance,
+            distance_pairwise=self.distance_pairwise,
             q_1_type=self.q_1_type,
             q_1_id=self.q_1_id,
             p_type=self.p_type,
@@ -58,8 +60,9 @@ class Analogy:
         )
 
     def get_row(self):
-        return "{q_1_source};{q_1_source_id};{q_1_target};{q_1_target_id};{q_2_source};{q_2_source_id};{q_2_target};{q_2_target_id};{distance}""".format(
+        return "{q_1_source};{q_1_source_id};{q_1_target};{q_1_target_id};{q_2_source};{q_2_source_id};{q_2_target};{q_2_target_id};{distance};{distance_pairwise}""".format(
             distance=self.distance,
+            distance_pairwise=self.distance_pairwise,
             q_1_source=self.q_1_source,
             q_1_source_id=self.q_1_source_id,
             q_1_target=self.q_1_target,
@@ -75,7 +78,7 @@ class Analogy:
 def read_analogy_data(fname):
     logging.info("Loading analogy file: {}".format(fname))
     with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'distance']
+        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'distance', 'distance_pairwise']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         for row in reader:
             yield row
@@ -147,7 +150,8 @@ def build_analogy_examples(rows):
                 row['Q3_id'],
                 row['Q4'],
                 row['Q4_id'],
-                row['distance'] if row['distance']  != '' else -1.0  # For some analogies we don't have the distances
+                row['distance'] if row['distance']  != '' else -1.0,  # For some analogies we don't have the distances
+                row['distance_pairwise'] if row['distance_pairwise']  != '' else -1.0  # For some analogies we don't have the distances
             )
 
 

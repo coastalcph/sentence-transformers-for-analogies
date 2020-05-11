@@ -16,7 +16,7 @@ def filter_analogies(analogies):
         entities_set = {a.q_1_source, a.q_1_target, a.q_2_source, a.q_2_target}
         if a.q_1_type == 'year' or a.q_2_type == 'year':
             continue
-        elif a.q_1_source == a.q_2_source:
+        elif a.q_1_source == a.q_2_source or a.q_1_target == a.q_2_source or a.q_2_target == a.q_2_source:
             continue
         elif a.q_1_source == a.q_1_target:
             continue
