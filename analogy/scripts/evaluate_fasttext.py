@@ -288,7 +288,7 @@ def evaluate(configs, language):
     # full_embeddings = MyEmbeddings(word_to_idx, embedding_dim=300)
     # full_embeddings.load_words_embeddings(vectors)
 
-    model = AnalogyModel(train_embeddings, valid_embeddings, configs['reg_term_lambda'], configs['delta'])
+    model = AnalogyModel(train_embeddings, valid_embeddings, test_embeddings, configs['reg_term_lambda'], configs['delta'])
     mapper = IdentityMapper()
     model.set_mapper(mapper)
 
@@ -322,9 +322,9 @@ def evaluate(configs, language):
     Y = train_embeddings.weight.data.cpu().numpy()
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y)
     mapper_model = MLPRegressor(
-        hidden_layer_sizes=(512, 512, 512),
+        hidden_layer_sizes=(1024, 1024, 1024, 1024),
         activation='tanh',
-        max_iter=10,
+        max_iter=50,
         verbose=True,
         alpha=0,
     )

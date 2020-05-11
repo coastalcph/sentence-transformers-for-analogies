@@ -26,11 +26,12 @@ class MyEmbeddings(nn.Embedding):
 
 
 class AnalogyModel(nn.Module):
-    def __init__(self, train_embeddings, test_embeddings, reg_term_lambda=0.001, delta=0.1):
+    def __init__(self, train_embeddings, test_embeddings, other_embeddings, reg_term_lambda=0.001, delta=0.1):
         super(AnalogyModel, self).__init__()
         self.train_embeddings = train_embeddings
         self.original_embeddings = copy.deepcopy(train_embeddings)
         self.test_embeddings = test_embeddings
+        self.other_embeddings = other_embeddings
         self.loss = nn.CosineEmbeddingLoss()
         self.regularization = nn.MSELoss(reduction='sum')
         self.reg_term_lambda = reg_term_lambda
