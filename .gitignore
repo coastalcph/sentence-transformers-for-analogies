@@ -7,3 +7,4 @@ dist/
 nr_*/
 venv
 data/
+.ipynb_checkpoints/
