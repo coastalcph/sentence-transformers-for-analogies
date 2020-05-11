@@ -56,7 +56,7 @@ def compute_biggraph_distances_pair(qid1, qid2, emb_file, pointers):
     return None
 
 
-def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, pointers,setting="pairwise"):
+def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, pointers, setting="pairwise"):
     """
     compute distances between elements of the analogy. Returns a a tuple of distances, 1. between all possible pairs in the analogy
     and 2. d= (cos(e1,e2) + cos(e3,e4))/2
@@ -87,7 +87,7 @@ def compute_biggraph_distances_quadruplet(qid1, qid2, qid3, qid4, emb_file, poin
         print('{} not in embeddings'.format(qid3))
     if qid4 not in pointers:
         print('{} not in embeddings'.format(qid4))
-    return None
+    return None, None
 
 if __name__=="__main__":
 
