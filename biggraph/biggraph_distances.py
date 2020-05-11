@@ -29,9 +29,11 @@ def augment_analogy_data(fname_in, fname_out, emb_file, pointers):
                 q1, p, q2 = match.group(1), match.group(2), match.group(3)
                 distances = compute_biggraph_distances_pair(q1, q2, emb_file, pointers)
                 if distances:
-                    d = distances[0][0]
+                    d_all = distances[0][0]
+                    d_pairwise = None
                 else:
-                    d = None
+                    d_all = None
+                    d_pairwise = None
             else:
                 q1, q2, q3, q4 = row['Q1_id'], row['Q2_id'], row['Q3_id'], row['Q4_id']
                 d_all, d_pairwise = compute_biggraph_distances_quadruplet(q1, q2, q3, q4, emb_file, pointers)
