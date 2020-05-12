@@ -160,4 +160,4 @@ class NeuralMapper:
         self.device = device
 
     def apply(self, elems):
-        return torch.tensor(self.model.predict(elems.detach().cpu().numpy()), device=self.device)
+        return self.model(elems)
