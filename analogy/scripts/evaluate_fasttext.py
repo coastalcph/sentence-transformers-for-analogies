@@ -24,7 +24,7 @@ from sklearn.metrics import r2_score
 from sklearn.preprocessing import Normalizer
 
 from analogy.data import build_analogy_examples_from_file
-from analogy.metrics import CorrelationMetric
+from analogy.metrics import CorrelationMetric, CorrelationBinnedAccuracyMetric
 from analogy.models import MyEmbeddings, AnalogyModel, IdentityMapper, NeuralMapper
 
 
@@ -53,7 +53,7 @@ class AnalogyExample:
 
 
 def r2_score_pytorch(y_pred, y_true):
-    return r2_score(y_true.cpu().numpy(), y_pred.cpu().numpy())
+    return r2_score(y_true.detach().cpu().numpy(), y_pred.detach().cpu().numpy())
 
 
 def process_entity(entity):
@@ -262,17 +262,23 @@ def evaluate(configs, language):
     mapper = IdentityMapper()
     model.set_mapper(mapper)
 
-    poutyne_model = Model(model, 'adam', loss_function=model.loss_function, batch_metrics=[model.accuracy], epoch_metrics=[CorrelationMetric()])
+    poutyne_model = Model(
+        model,
+        'adam',
+        loss_function=model.loss_function,
+        batch_metrics=[model.accuracy],
+        epoch_metrics=[CorrelationMetric(), CorrelationBinnedAccuracyMetric()]
+    )
     poutyne_model.to(device)
 
-    loss, (acc, corr) = poutyne_model.evaluate_generator(valid_loader)
+    loss, (acc, corr, _) = poutyne_model.evaluate_generator(valid_loader)
     logging.info("Statistics on valid set before train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
 
     # Setting the embedding table
     model.test_embeddings = test_embeddings
-    loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
+    loss, (acc, corr, _) = poutyne_model.evaluate_generator(test_loader)
     logging.info("Statistics on test set before train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
@@ -310,13 +316,13 @@ def evaluate(configs, language):
     model.set_mapper(neural_mapper)
 
     model.test_embeddings = valid_embeddings
-    loss, (acc, corr) = poutyne_model.evaluate_generator(valid_loader)
+    loss, (acc, corr, _) = poutyne_model.evaluate_generator(valid_loader)
     logging.info("Statistics on valid set after train (IdentityMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
 
     model.test_embeddings = test_embeddings
-    loss, (acc, corr) = poutyne_model.evaluate_generator(test_loader)
+    loss, (acc, corr, _) = poutyne_model.evaluate_generator(test_loader)
     logging.info("Statistics on test set after train (NeuralMapper used);")
     logging.info("Accuracy: {}".format(acc))
     logging.info("Correlation: {}".format(corr))
