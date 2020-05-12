@@ -15,8 +15,9 @@ class CorrelationMetric(EpochMetric):
         scores = x['scores']
         distances = x['distances']
         for i, (s, d) in enumerate(zip(scores, distances)):
-            self.scores.append(1 - float(s[e3[i]]))
-            self.distances.append(float(d))  # We append the distance
+            if d >= 0:
+                self.scores.append(1 - float(s[e3[i]]))
+                self.distances.append(float(d))  # We append the distance
 
     def get_metric(self):
         val =  np.corrcoef(self.scores, self.distances)[0][1]
@@ -71,7 +72,7 @@ class CorrelationBinnedAccuracyMetric(EpochMetric):
         five_six = list()
         six_rest = list()
         for a, d in zip(self.accuracies, self.distances):
-            if d < 0.3:
+            if d < 0.3 and d >=0 :
                 zero_three.append(a)
             elif d < 0.4:
                 three_four.append(a)
@@ -79,7 +80,7 @@ class CorrelationBinnedAccuracyMetric(EpochMetric):
                 four_five.append(a)
             elif d < 0.6:
                 five_six.append(a)
-            else:
+            elif d >= 0.6:
                 six_rest.append(a)
         print()
         print("Correlation bins")

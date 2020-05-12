@@ -337,6 +337,7 @@ def main(configs):
 if __name__ == '__main__':
     random.seed(42)
     np.random.seed(42)
+    torch.manual_seed(42)
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     formatter = logging.Formatter('%(asctime)s : %(levelname)s : %(message)s')
