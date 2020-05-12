@@ -48,10 +48,7 @@ def compare_prediction(prediction, analogy):
     return True
 
 def main(args):
-    cfg = args.config
-    config = configparser.ConfigParser(interpolation=configparser.ExtendedInterpolation())
-    config.read(cfg)
-
+ 
     distance_file = args.distance_file
     predictions_file = args.predictions_file
     analogies_file = args.test_file
@@ -124,7 +121,7 @@ if __name__=="__main__":
                         help="Data file with predictions")
     parser.add_argument('--test_file', type=str, default='../../../data/analogy_unique_en.csv.small',
                         help="Data file with test analogies")
-    parser.add_argument('--config', type=str, default='../biggraph/config.cfg')
+
     parser.add_argument('--intervals', type=list, default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
                         help="Frequency intervals [)")
     parser.add_argument('--out_file', type=str, default='e05d7ea57fdc4920957a3f5959c7a332/frequency_bins.csv',
