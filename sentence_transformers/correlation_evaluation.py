@@ -48,7 +48,7 @@ def compare_prediction(prediction, analogy):
     return True
 
 def main(args):
- 
+
     distance_file = args.distance_file
     predictions_file = args.predictions_file
     analogies_file = args.test_file
@@ -80,10 +80,10 @@ def main(args):
     sorted_successes = [successes[i] for i in sorting_idx]
     bins = []
     bin = []
-    thr_idx = 0
+    thr_idx = 1
     accs = []
     for s, dist in zip(sorted_successes, sorted_dists):
-        if dist > eff_intervals[thr_idx]:
+        if dist >= eff_intervals[thr_idx]:
             bins.append(bin)
             bin = [(s, dist)]
             thr_idx += 1
@@ -103,8 +103,11 @@ def main(args):
         acc = tp / len(all)
         print('ALL {}/{} acc: {}'.format(tp, len(all), acc))
         wr.writerow(['ALL', '{}/{}'.format(tp, len(all)), acc])
-        pearson = pearsonr(accs, eff_intervals[:-1])
+        print(eff_intervals)
+        print(accs)
+        pearson = pearsonr(accs, eff_intervals[1:-1])
         print('Pearson: {}'.format(pearson))
+        print(np.corrcoef(accs, eff_intervals[1:-1]))
         wr.writerow(['Pearson', pearson])
     f.close()
 
@@ -122,7 +125,7 @@ if __name__=="__main__":
     parser.add_argument('--test_file', type=str, default='../../../data/analogy_unique_en.csv.small',
                         help="Data file with test analogies")
 
-    parser.add_argument('--intervals', type=list, default=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+    parser.add_argument('--intervals', type=list, default=[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
                         help="Frequency intervals [)")
     parser.add_argument('--out_file', type=str, default='e05d7ea57fdc4920957a3f5959c7a332/frequency_bins.csv',
                         help="Data file with test analogies")
