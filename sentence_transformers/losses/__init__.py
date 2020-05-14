@@ -6,3 +6,4 @@ from .TripletLoss import *
 from .MSELoss import *
 from .AnalogyMSELoss import *
 from .AnalogyBatchHardTripletLoss import *
+from .AnalogyCosineLoss import *
