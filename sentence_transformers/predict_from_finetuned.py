@@ -30,12 +30,9 @@ def main(args):
 
     test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
     tokenizer = model._first_module().tokenizer
-    evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer)
+    evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer, distance_file=args.distance_file, test_file=os.path.join(args.data_path,  args.test_data))
 
     model.evaluate(evaluator=evaluator, output_path= output_path)
-
-
-
 
 
 
@@ -45,16 +42,20 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
           description='Train SentenceBert with analogy data')
 
-    parser.add_argument('--model', type=str, default='e826f2d4bafa4f2c8713d6a2d70cbffd/',
+    parser.add_argument('--model', type=str, default='37ea3401e1c94322ba01b9773ab1303f/',
                         help="The model to be loaded")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
     parser.add_argument('--test_data', type=str,
-                        help="csv file with analogies", default='analogy_unique_en.csv.small')
+                        help="csv file with analogies", default='analogy_unique_da_dists.csv.test.small')
+    parser.add_argument('--distance_file', type=str, default='../../../data/analogy_unique_da_dists.csv',
+                        help="Data file with distances for all analogies in the test set")
     parser.add_argument('--out', type=str,
                         help="output path", default='')
     parser.add_argument('--bs', type=int, default=16,
                         help="Batch size")
+
+
 
 
 

@@ -7,6 +7,8 @@ from tqdm import tqdm
 from ..util import batch_to_device, combine_anchor_entities
 import csv
 from transformers import BertModel, BertTokenizer
+from ..correlation_evaluation import read_analogies, read_dists
+from scipy.stats import pearsonr
 
 import numpy as np
 
@@ -21,7 +23,7 @@ class AnalogyEvaluator(SentenceEvaluator):
     """
 
 
-    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None, write_predictions: bool=False, tokenizer: BertTokenizer=None):
+    def __init__(self, dataloader: DataLoader, main_similarity: SimilarityFunction = None, name: str = '', show_progress_bar: bool = None, write_predictions: bool=False, tokenizer: BertTokenizer=None, distance_file=None, test_file=None):
         """
         Constructs an evaluator based for the dataset
 
@@ -42,9 +44,13 @@ class AnalogyEvaluator(SentenceEvaluator):
 
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.csv_file = "analogy_accuracy_evaluation"+name+"_results.csv"
-        self.csv_headers = ["epoch", "steps", "accuracy", "candidates"]
+        self.csv_headers = ["epoch", "steps", "accuracy", "candidates", "pearson"]
         self.write_predictions=write_predictions
         self.tokenizer = tokenizer
+
+        if distance_file != None and test_file != None:
+            self.analogy2dist = read_dists(distance_file)
+            self.test_analogies = read_analogies(test_file)
 
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1,
@@ -119,10 +125,12 @@ class AnalogyEvaluator(SentenceEvaluator):
                     analogy_ids.append([candidate2id[es[0]], candidate2id[es[1]], candidate2id[es[2]], candidate2id[es[3]]])
                     assert id2candidate[analogy_ids[-1][2]] == es[2]
                 rep_ea.append(ea)
+
                 analogies.extend(analogy_batch)
                 analogies2ids.extend(analogy_ids)
 
         rep_ea = torch.cat(rep_ea, 0)
+
         rep_candidates = torch.cat(rep_candidates, 0)
         assert rep_candidates.shape[0] == len(id2candidate) == len(candidate2id)
         print(rep_candidates.shape)
@@ -162,23 +170,35 @@ class AnalogyEvaluator(SentenceEvaluator):
         print('Successes: {}, num_data {}'.format(successes, num_data))
         accuracy = successes/num_data
 
-        """
-        correct_idxs = torch.from_numpy(np.array([elm[2] for elm in analogies2ids]).astype(np.long)).to(self.device)
-        accuracy = ((retrieved_idxs - correct_idxs) == 0).float().sum() / num_data
-        """
         logging.info("Accuracy:\t{:4f}".format(accuracy))
         num_candidates = rep_candidates.shape[0]
+
+        if self.analogy2dist != None:
+            assert len(self.test_analogies) == len(analogies2ids)
+            # compute correlations between cos(ea, e3) and dist_biggraph(e1, e2, e3, e4)
+            biggraph_dists = []
+            cos_sims_model = []
+            for aid, test_analogy in enumerate(self.test_analogies):
+                # not all analogies have distances
+                if test_analogy in self.analogy2dist:
+                    biggraph_dists.append(self.analogy2dist[test_analogy])
+                    # get the cosine sim that the model calculated
+                    idx_e3 = analogies2ids[aid][2]
+                    cos_sims_model.append(cosine_sims[aid, idx_e3])
+            pearson = pearsonr(biggraph_dists, cos_sims_model)[0]
+        else: pearson = None
         if output_path is not None:
             csv_path = os.path.join(output_path, self.csv_file)
             if not os.path.isfile(csv_path):
                 with open(csv_path, mode="w", encoding="utf-8") as f:
                     writer = csv.writer(f)
                     writer.writerow(self.csv_headers)
-                    writer.writerow([epoch, steps, accuracy, num_candidates])
+                    writer.writerow([epoch, steps, accuracy, num_candidates, pearson])
             else:
                 with open(csv_path, mode="a", encoding="utf-8") as f:
                     writer = csv.writer(f)
-                    writer.writerow([epoch, steps, accuracy, num_candidates])
+                    writer.writerow([epoch, steps, accuracy, num_candidates, pearson])
+
 
         if self.write_predictions:
 

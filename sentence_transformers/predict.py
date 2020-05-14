@@ -43,7 +43,7 @@ def main(args):
 
     test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
     tokenizer = model._first_module().tokenizer
-    evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer)
+    evaluator = AnalogyEvaluator(test_dataloader, write_predictions=True, tokenizer=tokenizer,distance_file=args.distance_file, test_file=os.path.join(args.data_path,  args.test_data))
 
     model.evaluate(evaluator=evaluator, output_path= output_path)
 
@@ -64,6 +64,8 @@ if __name__ == '__main__':
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
+    parser.add_argument('--distance_file', type=str, default='../../../data/analogy_unique_da_dists.csv',
+                        help="Data file with distances for all analogies in the test set")
     parser.add_argument('--test_data', type=str,
                         help="csv file with analogies", default='analogy_unique_en.csv.small')
     parser.add_argument('--out', type=str,
