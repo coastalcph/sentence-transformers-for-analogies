@@ -41,6 +41,8 @@ def main(args):
         train_loss = losses.AnalogyMSELoss(model=model)
     elif args.loss == 'hardtriplet':
         train_loss = losses.AnalogyBatchHardTripletLoss(sentence_embedder=model)
+    elif args.loss == 'cosine':
+        train_loss = losses.AnalogyCosineLoss(model=model)
 
 
     # Load data
@@ -73,7 +75,7 @@ if __name__ == '__main__':
           description='Train SentenceBert with analogy data')
 
     parser.add_argument('--loss', type=str, default='hardtriplet',
-                        choices = ['mse', 'hardtriplet'],
+                        choices = ['mse', 'hardtriplet', 'cosine'],
                         help="The loss function used")
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
@@ -84,12 +86,12 @@ if __name__ == '__main__':
     parser.add_argument('--train_data', type=str,
                         help="csv file with analogies", default='analogy_unique_en.csv.small')
     parser.add_argument('--dev_data', type=str,
-                        help="csv file with analogies", default='analogy_unique_en.csv.dev')
+                        help="csv file with analogies", default='analogy_unique_en.csv.small')
     parser.add_argument('--out', type=str,
                         help="output path", default='')
     parser.add_argument('--bs', type=int, default=8,
                         help="Batch size")
-    parser.add_argument('--epochs', type=int, default=5,
+    parser.add_argument('--epochs', type=int, default=2,
                         help="Number of training epochs")
     parser.add_argument('--evaluation_steps', type=int, default=10,
                         help="Evaluate every n training steps")
