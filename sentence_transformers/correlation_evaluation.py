@@ -14,7 +14,7 @@ def read_dists(dist_file):
         analogy2dist = {}
         for row in reader:
             if not is_comment(row):
-                if not row['pairwise_dist'] == '':
+                if not (row['pairwise_dist'] == '' or row['all_dist'] ==''):
                     analogy2dist[(row['Q1_id'], row['Q2_id'], row['Q3_id'], row['Q4_id'])] = float(row['pairwise_dist'])
     return analogy2dist
 
@@ -60,12 +60,19 @@ def main(args):
     test_analogies = read_analogies(analogies_file)
     dists = []
     successes = []
+    missing = 0
+    neg = 0
     for aid, test_analogy in enumerate(test_analogies):
         # not all analogies have distances
         if test_analogy in analogy2dist:
             dists.append(analogy2dist[test_analogy])
             successes.append(int(predictions[aid]['success']))
+            if analogy2dist[test_analogy] < 0:
+                neg += 1
+        else:
+            missing += 1
 
+    print('Found {} of {}, {} missing. {} negative'.format(len(dists), len(test_analogies), missing, neg))
     min_val = np.min(dists)
     max_val = np.max(dists)
     eff_intervals = [min_val]
@@ -118,11 +125,11 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser(
         description='Train SentenceBert with analogy data')
 
-    parser.add_argument('--distance_file', type=str, default='../../../data/analogy_all_en_dists.csv',
+    parser.add_argument('--distance_file', type=str, default='../../../data/analogy_unique_da_dists.csv',
                         help="Data file with distances for all analogies in the test set")
-    parser.add_argument('--predictions_file', type=str, default='e05d7ea57fdc4920957a3f5959c7a332/predictions_0.csv',
+    parser.add_argument('--predictions_file', type=str, default='../../../data/predictions_0.csv',
                         help="Data file with predictions")
-    parser.add_argument('--test_file', type=str, default='../../../data/analogy_unique_en.csv.small',
+    parser.add_argument('--test_file', type=str, default='../../../data/analogy_unique_da_dists.csv.test',
                         help="Data file with test analogies")
 
     parser.add_argument('--intervals', type=list, default=[0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
