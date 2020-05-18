@@ -51,6 +51,9 @@ class AnalogyEvaluator(SentenceEvaluator):
         if distance_file != None and test_file != None:
             self.analogy2dist = read_dists(distance_file)
             self.test_analogies = read_analogies(test_file)
+        else:
+            self.analogy2dist = None
+            self.test_analogies = None
 
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1,
