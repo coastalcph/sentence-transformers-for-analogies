@@ -152,7 +152,7 @@ def get_longest_alias(l):
     longest = aliases[0]
     if len(aliases) > 1:
         for elm in aliases[1:]:
-            if len(elm) > longest:
+            if len(elm) > len(longest):
                 longest = elm
     return longest
 
