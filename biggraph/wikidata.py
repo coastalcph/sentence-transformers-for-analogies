@@ -162,8 +162,7 @@ def augment_data(analogy_file, outfile, lang, pointers_file, dump_file, setting=
     dump = file_open(dump_file)
     with open(outfile, 'w') as f:
 
-        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id'] +
-                                                               ['Q1_context', 'Q2_context', 'Q3_context', 'Q4_context'])
+        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id', 'Q1_context', 'Q2', 'Q2_id', 'Q2_context', 'Q3', 'Q3_id', 'Q3_context','Q4', 'Q4_id', 'Q4_context', 'distance', 'distance_pairwise'])
         for row in read_analogy_data(analogy_file):
             if not is_comment(row):
                 if setting == 'longest':
@@ -203,6 +202,6 @@ if __name__=="__main__":
     langs = ['da', 'de', 'en', 'es', 'fi', 'fr', 'it', 'nl', 'pl', 'pt', 'sv']
     for setting in ['unique', 'all']:
         for lang in langs:
-            fname = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}.csv'.format(setting, lang))
+            fname = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_dists.csv'.format(setting, lang))
             fname_out = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_longestalias.csv'.format(setting, lang))
             augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
