@@ -11,6 +11,7 @@ from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, Analo
 import os
 import argparse
 import uuid
+from sentence_transformers.util import bool_flag
 
 def main(args):
 
@@ -23,13 +24,13 @@ def main(args):
     # Set up encoder
     if args.encoder == 'small_bert':
         # small BERT is a toy model
-        word_embedding_model = SmallBERT(model_name_or_path='bert-base-uncased', config_dict=test_config.test_config)
+        word_embedding_model = SmallBERT(model_name_or_path='bert-base-uncased', config_dict=test_config.test_config, do_lower_case=args.lower_case)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                    pooling_mode_mean_tokens=True,
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
     else:
-        word_embedding_model = BERT(model_name_or_path=args.encoder)
+        word_embedding_model = BERT(model_name_or_path=args.encoder, do_lower_case=args.lower_case)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                        pooling_mode_mean_tokens=True,
                                        pooling_mode_cls_token=False,
@@ -73,7 +74,8 @@ if __name__ == '__main__':
     parser.add_argument('--bs', type=int, default=16,
                         help="Batch size")
 
-
+    parser.add_argument('--lower_case', type=bool_flag, default=False,
+                        help="Lower case all inputs (this is done by default by sentence bert)")
 
     args = parser.parse_args()
     main(args)

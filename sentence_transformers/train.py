@@ -1,16 +1,18 @@
 from sentence_transformers import models
 from sentence_transformers import test_config
-from transformers import BertConfig, BertModel
 from sentence_transformers.models import SmallBERT, BERT
 from sentence_transformers import SentenceTransformer
-from sentence_transformers.readers import NLIDataReader, STSDataReader, AnalogyReader
+from sentence_transformers.readers import AnalogyReader
 from sentence_transformers import losses
 from torch.utils.data import DataLoader
-from sentence_transformers.datasets import SentencesDataset, AnalogyDataset
-from sentence_transformers.evaluation import EmbeddingSimilarityEvaluator, AnalogyEvaluator
+from sentence_transformers.datasets import AnalogyDataset
+from sentence_transformers.evaluation import AnalogyEvaluator
 import os
 import argparse
 import uuid
+
+from sentence_transformers.util import bool_flag
+
 
 def main(args):
 
@@ -23,13 +25,13 @@ def main(args):
     # Set up encoder
     if args.encoder == 'small_bert':
         # small BERT is a toy model
-        word_embedding_model = SmallBERT(model_name_or_path='bert-base-uncased', config_dict=test_config.test_config)
+        word_embedding_model = SmallBERT(model_name_or_path='bert-base-uncased', config_dict=test_config.test_config, do_lower_case=args.lower_case)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                    pooling_mode_mean_tokens=True,
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
     else:
-        word_embedding_model = BERT(model_name_or_path=args.encoder)
+        word_embedding_model = BERT(model_name_or_path=args.encoder, do_lower_case=args.lower_case)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                        pooling_mode_mean_tokens=True,
                                        pooling_mode_cls_token=False,
@@ -67,8 +69,6 @@ def main(args):
          )
 
 
-
-
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(
@@ -95,7 +95,8 @@ if __name__ == '__main__':
                         help="Number of training epochs")
     parser.add_argument('--evaluation_steps', type=int, default=10,
                         help="Evaluate every n training steps")
-
+    parser.add_argument('--lower_case', type=bool_flag, default=False,
+                        help="Lower case all inputs (this is done by default by sentence bert)")
 
     args = parser.parse_args()
     main(args)
