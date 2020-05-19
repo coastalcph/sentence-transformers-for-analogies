@@ -143,7 +143,21 @@ def get_aliases_descriptions(qid, lang, dump, pointers):
         print('{} is not present in dump'.format(qid))
         return None
 
-def augment_data(analogy_file, outfile, lang, pointers_file, dump_file):
+def get_longest_alias(l):
+    """
+    get sequence with highest number of chars from list of sequences
+    """
+    longest = l[0]
+    if len(l) > 1:
+        for elm in l[1:]:
+            if len(elm) > longest:
+                longest = elm
+    return longest
+
+def augment_data(analogy_file, outfile, lang, pointers_file, dump_file, setting='longest'):
+    """
+    if setting == longest, only retrieve longest alias for each entity
+    """
     pointers = load_pointers(pointers_file)
     dump = file_open(dump_file)
     with open(outfile, 'w') as f:
@@ -152,10 +166,22 @@ def augment_data(analogy_file, outfile, lang, pointers_file, dump_file):
                                                                ['Q1_context', 'Q2_context', 'Q3_context', 'Q4_context'])
         for row in read_analogy_data(analogy_file):
             if not is_comment(row):
-                q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
-                q2_context = get_aliases_descriptions(row['Q2_id'], lang, dump, pointers)
-                q3_context = get_aliases_descriptions(row['Q3_id'], lang, dump, pointers)
-                q4_context = get_aliases_descriptions(row['Q4_id'], lang, dump, pointers)
+                if setting == 'longest':
+                    q1_context = get_longest_alias(get_aliases_descriptions(row['Q1_id'], lang, dump, pointers))
+                    q2_context = get_longest_alias(get_aliases_descriptions(row['Q2_id'], lang, dump, pointers))
+                    q3_context = get_longest_alias(get_aliases_descriptions(row['Q3_id'], lang, dump, pointers))
+                    q4_context = get_longest_alias(get_aliases_descriptions(row['Q4_id'], lang, dump, pointers))
+                    if q1_context is None: q1_context = row['Q1']
+                    if q2_context is None: q2_context = row['Q2']
+                    if q3_context is None: q3_context = row['Q3']
+                    if q4_context is None: q4_context = row['Q4']
+                else:
+                    q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
+                    q2_context = get_aliases_descriptions(row['Q2_id'], lang, dump, pointers)
+                    q3_context = get_aliases_descriptions(row['Q3_id'], lang, dump, pointers)
+                    q4_context = get_aliases_descriptions(row['Q4_id'], lang, dump, pointers)
+
+
                 row.update({'Q1_context': q1_context})
                 row.update({'Q2_context': q2_context})
                 row.update({'Q3_context': q3_context})
@@ -178,4 +204,4 @@ if __name__=="__main__":
     for lang in langs:
         fname = os.path.join(config.get('Files', 'data'), 'analogy_all_{}.csv'.format(lang))
         fname_out = os.path.join(config.get('Files', 'data'), 'analogy_all_{}_contexts.csv'.format(lang))
-        augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path)
+        augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
