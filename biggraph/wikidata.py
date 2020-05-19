@@ -147,7 +147,7 @@ def get_longest_alias(l):
     """
     get sequence with highest number of chars from list of sequences
     """
-    if len(l) == 0 or l is None or l['aliases'] is None: return None
+    if l is None or l['aliases'] is None: return None
     aliases = l['aliases']
     longest = aliases[0]
     if len(aliases) > 1:
