@@ -201,7 +201,8 @@ if __name__=="__main__":
     pointers_path = config.get('Files', 'wikidata_pointers')
 
     langs = ['da', 'de', 'en', 'es', 'fi', 'fr', 'it', 'nl', 'pl', 'pt', 'sv']
-    for lang in langs:
-        fname = os.path.join(config.get('Files', 'data'), 'analogy_all_{}.csv'.format(lang))
-        fname_out = os.path.join(config.get('Files', 'data'), 'analogy_all_{}_contexts.csv'.format(lang))
-        augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
+    for setting in ['unique', 'all']:
+        for lang in langs:
+            fname = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}.csv'.format(setting, lang))
+            fname_out = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_longestalias.csv'.format(setting, lang))
+            augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
