@@ -254,7 +254,8 @@ class SentenceTransformer(nn.Sequential):
 
     def fit(self,
             train_objectives: Iterable[Tuple[DataLoader, nn.Module]],
-            evaluator: SentenceEvaluator,
+            train_evaluator: SentenceEvaluator,
+            dev_evaluator: SentenceEvaluator,
             epochs: int = 1,
             steps_per_epoch = None,
             scheduler: str = 'WarmupLinear',
@@ -398,7 +399,8 @@ class SentenceTransformer(nn.Sequential):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(evaluator, output_path, save_best_model, epoch, training_steps)
+                    self._eval_during_training(train_evaluator, output_path, save_best_model=False, epoch=epoch, steps=training_steps)
+                    self._eval_during_training(dev_evaluator, output_path, save_best_model, epoch, training_steps)
                     for loss_model in loss_models:
                         loss_model.zero_grad()
                         loss_model.train()

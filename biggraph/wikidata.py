@@ -143,23 +143,51 @@ def get_aliases_descriptions(qid, lang, dump, pointers):
         print('{} is not present in dump'.format(qid))
         return None
 
-def augment_data(analogy_file, outfile, lang, pointers_file, dump_file):
+def get_longest_alias(title, aliases):
+    """
+    get longest sequence, where length is defined as number of tokens separated by whitespace
+    """
+    if aliases is None or aliases['aliases'] is None: return title
+    aliases = aliases['aliases']
+    # get longest alias
+    longest = aliases[0]
+    if len(aliases) > 1:
+        for elm in aliases[1:]:
+            if len(elm.split()) > len(longest.split()):
+                longest = elm
+    if len(longest.split()) > len(title.split()):
+        return longest
+    else: return title
+
+
+def augment_data(analogy_file, outfile, lang, pointers_file, dump_file, setting='longest'):
+    """
+    if setting == longest, only retrieve longest alias for each entity
+    """
     pointers = load_pointers(pointers_file)
     dump = file_open(dump_file)
     with open(outfile, 'w') as f:
 
-        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id'] +
-                                                               ['Q1_context', 'Q2_context', 'Q3_context', 'Q4_context'])
+        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id',  'Q2', 'Q2_id', 'Q3', 'Q3_id','Q4', 'Q4_id', 'distance', 'distance_pairwise'])
         for row in read_analogy_data(analogy_file):
             if not is_comment(row):
-                q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
-                q2_context = get_aliases_descriptions(row['Q2_id'], lang, dump, pointers)
-                q3_context = get_aliases_descriptions(row['Q3_id'], lang, dump, pointers)
-                q4_context = get_aliases_descriptions(row['Q4_id'], lang, dump, pointers)
-                row.update({'Q1_context': q1_context})
-                row.update({'Q2_context': q2_context})
-                row.update({'Q3_context': q3_context})
-                row.update({'Q4_context': q4_context})
+                if setting == 'longest':
+                    q1_context = get_longest_alias(row['Q1'], get_aliases_descriptions(row['Q1_id'], lang, dump, pointers))
+                    q2_context = get_longest_alias(row['Q2'], get_aliases_descriptions(row['Q2_id'], lang, dump, pointers))
+                    q3_context = get_longest_alias(row['Q3'], get_aliases_descriptions(row['Q3_id'], lang, dump, pointers))
+                    q4_context = get_longest_alias(row['Q4'], get_aliases_descriptions(row['Q4_id'], lang, dump, pointers))
+                else:
+                    q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
+                    q2_context = get_aliases_descriptions(row['Q2_id'], lang, dump, pointers)
+                    q3_context = get_aliases_descriptions(row['Q3_id'], lang, dump, pointers)
+                    q4_context = get_aliases_descriptions(row['Q4_id'], lang, dump, pointers)
+
+
+                row['Q1'] = q1_context
+                row['Q2'] = q2_context
+                row['Q3'] = q3_context
+                row['Q4'] = q4_context
+
                 print(row)
                 writer.writerow(row)
             else:
@@ -175,7 +203,8 @@ if __name__=="__main__":
     pointers_path = config.get('Files', 'wikidata_pointers')
 
     langs = ['da', 'de', 'en', 'es', 'fi', 'fr', 'it', 'nl', 'pl', 'pt', 'sv']
-    for lang in langs:
-        fname = os.path.join(config.get('Files', 'data'), 'analogy_all_{}.csv'.format(lang))
-        fname_out = os.path.join(config.get('Files', 'data'), 'analogy_all_{}_contexts.csv'.format(lang))
-        augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path)
+    for setting in ['unique', 'all']:
+        for lang in langs:
+            fname = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_dists.csv'.format(setting, lang))
+            fname_out = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_longestalias.csv'.format(setting, lang))
+            augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
