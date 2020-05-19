@@ -244,9 +244,9 @@ def evaluate(configs, language):
     vectorized_valid = vectorize_dataset(valid_set, valid_word_to_idx)
     vectorized_test = vectorize_dataset(test_set, test_word_to_idx)
 
-    train_loader = DataLoader(vectorized_train, batch_size=128, collate_fn=collate, shuffle=True, drop_last=True)
-    valid_loader = DataLoader(vectorized_valid, batch_size=128, collate_fn=collate)
-    test_loader = DataLoader(vectorized_test, batch_size=128, collate_fn=collate)
+    train_loader = DataLoader(vectorized_train, batch_size=16, collate_fn=collate, shuffle=True, drop_last=True)
+    valid_loader = DataLoader(vectorized_valid, batch_size=16, collate_fn=collate)
+    test_loader = DataLoader(vectorized_test, batch_size=16, collate_fn=collate)
 
     train_embeddings = MyEmbeddings(train_word_to_idx, embedding_dim=300)
     train_embeddings.load_words_embeddings(train_vectors)
@@ -309,7 +309,7 @@ def evaluate(configs, language):
         X_train, Y_train,
         validation_data=(X_test, Y_test),
         epochs=30,
-        batch_size=64
+        batch_size=16
     )
 
     neural_mapper = NeuralMapper(mapper_model, device)

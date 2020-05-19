@@ -1,6 +1,9 @@
 from sentence_transformers import models
 from sentence_transformers import test_config
-from sentence_transformers.models import SmallBERT, BERT
+
+from transformers import BertConfig, BertModel
+from sentence_transformers.models import SmallBERT, BERT, XLMRoBERTa
+
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.readers import AnalogyReader
 from sentence_transformers import losses
@@ -30,8 +33,15 @@ def main(args):
                                    pooling_mode_mean_tokens=True,
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
+    elif args.encoder == 'xlm-roberta-base':
+        word_embedding_model = XLMRoBERTa(model_name_or_path=args.encoder)
+        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                                       pooling_mode_mean_tokens=True,
+                                       pooling_mode_cls_token=False,
+                                       pooling_mode_max_tokens=False)
     else:
-        word_embedding_model = BERT(model_name_or_path=args.encoder, do_lower_case=args.lower_case)
+
+        word_embedding_model = BERT(model_name_or_path=args.encoder, do_lower_case=False)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                        pooling_mode_mean_tokens=True,
                                        pooling_mode_cls_token=False,
@@ -51,17 +61,19 @@ def main(args):
     analogy_reader = AnalogyReader()
     train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
     train_dataloader = DataLoader(train_data, shuffle=False, batch_size=batch_size)
+    train_evaluator = AnalogyEvaluator(train_dataloader, tokenizer=model._first_module().tokenizer, name='train')
 
     analogy_reader = AnalogyReader()
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer)
+    dev_evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer, name='dev')
 
 
 
     # Train
     model.fit(train_objectives=[(train_dataloader, train_loss)],
-         evaluator=evaluator,
+         train_evaluator=train_evaluator,
+         dev_evaluator=dev_evaluator,
          epochs=args.epochs,
          evaluation_steps=args.evaluation_steps,
          warmup_steps=0,
@@ -79,7 +91,7 @@ if __name__ == '__main__':
                         help="The loss function used")
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
-                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert'],
+                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert', 'xlm-roberta-base'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
