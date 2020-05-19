@@ -55,17 +55,19 @@ def main(args):
     analogy_reader = AnalogyReader()
     train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
     train_dataloader = DataLoader(train_data, shuffle=False, batch_size=batch_size)
+    train_evaluator = AnalogyEvaluator(train_dataloader, tokenizer=model._first_module().tokenizer, name='train')
 
     analogy_reader = AnalogyReader()
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
-    evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer)
+    dev_evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer, name='dev')
 
 
 
     # Train
     model.fit(train_objectives=[(train_dataloader, train_loss)],
-         evaluator=evaluator,
+         train_evaluator=train_evaluator,
+         dev_evaluator=dev_evaluator,
          epochs=args.epochs,
          evaluation_steps=args.evaluation_steps,
          warmup_steps=0,
