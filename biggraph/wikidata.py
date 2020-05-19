@@ -147,6 +147,7 @@ def get_longest_alias(l):
     """
     get sequence with highest number of chars from list of sequences
     """
+    if len(l) == 0: return None
     longest = l[0]
     if len(l) > 1:
         for elm in l[1:]:
