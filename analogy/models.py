@@ -106,9 +106,10 @@ class AnalogyModel(nn.Module):
             e3_embeddings = self.train_embeddings(e3)
             e4_embeddings = self.train_embeddings(e4)
             offset_trick = e1_embeddings - e2_embeddings + e4_embeddings
-            t_l = offset_trick[offset_trick.matmul(offset_trick.transpose(0, 1)).argsort()[:, -2]]
-            t_r = e3_embeddings[e3_embeddings.matmul(e3_embeddings.transpose(0, 1)).argsort()[:, -2]]
             a_norm = offset_trick / offset_trick.norm(dim=1)[:, None]
+            t_l = a_norm[a_norm.matmul(a_norm.transpose(0, 1)).argsort()[:, -2]]
+            e3_norm = e3_embeddings / e3_embeddings.norm(dim=1)[:, None]
+            t_r = e3_norm[e3_norm.matmul(e3_norm.transpose(0, 1)).argsort()[:, -2]]
             b_norm = self.train_embeddings.weight / self.train_embeddings.weight.norm(dim=1)[:, None]
             cosine_sims = torch.mm(a_norm, b_norm.transpose(0,1))
             return {
