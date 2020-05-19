@@ -405,7 +405,7 @@ class SentenceTransformer(nn.Sequential):
                         loss_model.zero_grad()
                         loss_model.train()
 
-            self._eval_during_training(evaluator, output_path, save_best_model, epoch, -1)
+            self._eval_during_training(dev_evaluator, output_path, save_best_model, epoch, -1)
 
     def evaluate(self, evaluator: SentenceEvaluator, output_path: str = None):
         """
