@@ -1,3 +1,5 @@
+import argparse
+
 import requests
 from torch import Tensor, device
 from typing import Tuple, List
@@ -77,3 +79,14 @@ def import_from_string(dotted_path):
 
 def combine_anchor_entities(e1,e2,e3,e4):
     return e1 - e2 + e4, e3
+
+
+def bool_flag(s):
+    """
+    Parse boolean arguments from the command line.
+    """
+    if s.lower() in ['off', 'false', '0']:
+        return False
+    if s.lower() in ['on', 'true', '1']:
+        return True
+    raise argparse.ArgumentTypeError("invalid value for a boolean flag (0 or 1)")
