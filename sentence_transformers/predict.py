@@ -1,7 +1,7 @@
 from sentence_transformers import models
 from sentence_transformers import test_config
 from transformers import BertConfig, BertModel
-from sentence_transformers.models import SmallBERT, BERT
+from sentence_transformers.models import SmallBERT, BERT, XLMRoBERTa
 from sentence_transformers import SentenceTransformer
 from sentence_transformers.readers import NLIDataReader, STSDataReader, AnalogyReader
 from sentence_transformers import losses
@@ -28,8 +28,14 @@ def main(args):
                                    pooling_mode_mean_tokens=True,
                                    pooling_mode_cls_token=False,
                                    pooling_mode_max_tokens=False)
+    elif args.encoder == 'xlm-roberta-base':
+        word_embedding_model = XLMRoBERTa(model_name_or_path=args.encoder)
+        pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
+                                       pooling_mode_mean_tokens=True,
+                                       pooling_mode_cls_token=False,
+                                       pooling_mode_max_tokens=False)
     else:
-        word_embedding_model = BERT(model_name_or_path=args.encoder)
+        word_embedding_model = BERT(model_name_or_path=args.encoder, do_lower_case=False)
         pooling_model = models.Pooling(word_embedding_model.get_word_embedding_dimension(),
                                        pooling_mode_mean_tokens=True,
                                        pooling_mode_cls_token=False,
@@ -60,7 +66,7 @@ if __name__ == '__main__':
 
     parser.add_argument('--encoder', type=str,
                         default='small_bert',
-                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert'],
+                        choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert', 'xlm-roberta-base'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
