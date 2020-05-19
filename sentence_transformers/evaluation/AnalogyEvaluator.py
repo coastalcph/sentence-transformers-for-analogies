@@ -187,7 +187,7 @@ class AnalogyEvaluator(SentenceEvaluator):
                     biggraph_dists.append(self.analogy2dist[test_analogy])
                     # get the cosine sim that the model calculated
                     idx_e3 = analogies2ids[aid][2]
-                    cos_sims_model.append(cosine_sims[aid, idx_e3].item())
+                    cos_sims_model.append(1- cosine_sims[aid, idx_e3].item())
             pearson = pearsonr(biggraph_dists, cos_sims_model)[0]
         else: pearson = None
         if output_path is not None:
