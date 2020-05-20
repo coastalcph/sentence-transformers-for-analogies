@@ -1,3 +1,6 @@
+import random
+import numpy as np
+import torch
 from sentence_transformers import models
 from sentence_transformers import test_config
 from transformers import BertConfig, BertModel
@@ -13,6 +16,10 @@ import argparse
 import uuid
 
 def main(args):
+
+    random.seed(args.seed)
+    np.random.seed(args.seed)
+    torch.manual_seed(args.seed)
 
     if args.out == '':
         output_path = uuid.uuid4().hex
@@ -54,7 +61,7 @@ def main(args):
     # Load data
     analogy_reader = AnalogyReader()
     train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
-    train_dataloader = DataLoader(train_data, shuffle=False, batch_size=batch_size)
+    train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
     train_evaluator = AnalogyEvaluator(train_dataloader, tokenizer=model._first_module().tokenizer, name='train')
 
     analogy_reader = AnalogyReader()
@@ -71,7 +78,8 @@ def main(args):
          epochs=args.epochs,
          evaluation_steps=args.evaluation_steps,
          warmup_steps=0,
-         output_path=output_path
+         output_path=output_path,
+         optimizer_params={'lr': 8e-6, 'eps': 1e-6, 'correct_bias': False}
          )
 
 
@@ -103,7 +111,9 @@ if __name__ == '__main__':
                         help="Number of training epochs")
     parser.add_argument('--evaluation_steps', type=int, default=10,
                         help="Evaluate every n training steps")
-
+    parser.add_argument('--seed', type=int, default=42,
+                        help="Random seed")
 
     args = parser.parse_args()
+
     main(args)
