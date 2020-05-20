@@ -6,8 +6,6 @@ loss=hardtriplet
 setting=unique
 eval_steps=$EVALSTEPS
 
-source activate py38
-
 for lang in en da de es fi fr it nl pl pt sv; do
 # for lang in en; do
 	outdir=./output/${encoder}_${lang}_${setting}_${loss}_${epochs}_${bs}_${seed}
