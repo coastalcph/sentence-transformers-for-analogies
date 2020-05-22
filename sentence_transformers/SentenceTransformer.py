@@ -399,7 +399,7 @@ class SentenceTransformer(nn.Sequential):
                 global_step += 1
 
                 if evaluation_steps > 0 and training_steps % evaluation_steps == 0:
-                    self._eval_during_training(train_evaluator, output_path, save_best_model=False, epoch=epoch, steps=training_steps)
+                    # self._eval_during_training(train_evaluator, output_path, save_best_model=False, epoch=epoch, steps=training_steps)
                     self._eval_during_training(dev_evaluator, output_path, save_best_model, epoch, training_steps)
                     for loss_model in loss_models:
                         loss_model.zero_grad()
