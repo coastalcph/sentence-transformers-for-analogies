@@ -9,7 +9,7 @@ import numpy as np
 
 def read_dists(dist_file):
     with open(dist_file, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'all_dist', 'pairwise_dist']
+        fieldnames = ['Q1', 'Q1_id', 'Q1_context', 'Q2', 'Q2_id', 'Q2_context', 'Q3', 'Q3_id', 'Q3_context', 'Q4', 'Q4_id', 'Q4_context', 'all_dist', 'pairwise_dist']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         analogy2dist = {}
         for row in reader:
@@ -20,7 +20,7 @@ def read_dists(dist_file):
 
 def read_analogies(fname):
     with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'all_dist', 'pairwise_dist']
+        fieldnames = ['Q1', 'Q1_id', 'Q1_context', 'Q2', 'Q2_id', 'Q2_context', 'Q3', 'Q3_id', 'Q3_context', 'Q4', 'Q4_id', 'Q4_context', 'all_dist', 'pairwise_dist']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         data = []
         for row in reader:
