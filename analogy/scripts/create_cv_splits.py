@@ -13,7 +13,6 @@ from analogy.data import build_analogy_examples_from_file
 def filter_analogies(analogies):
     filtered_analogies = dict()
     for i, a in enumerate(analogies):
-        entities_set = {a.q_1_source, a.q_1_target, a.q_2_source, a.q_2_target}
         if a.q_1_type == 'year' or a.q_2_type == 'year':
             continue
         elif a.q_1_source == a.q_2_source or a.q_1_target == a.q_2_source or a.q_2_target == a.q_2_source:
@@ -57,13 +56,13 @@ def main(args):
     logging.info(f"Valid ratio: {valid_ratio}")
     logging.info(f"Test ratio: {test_ratio}")
 
-    fnames = [f for f in os.listdir(data_path) if data_type in f and '#' not in f]
+    fnames = sorted([f for f in os.listdir(data_path) if data_type in f and '#' not in f])
     splits = defaultdict(dict)
 
     logging.info("Loading analogies for each language...")
     for fname in tqdm(fnames):
         file_path = os.path.join(data_path, fname)
-        analogy_examples = build_analogy_examples_from_file(file_path)
+        analogy_examples = list(build_analogy_examples_from_file(file_path))
         filtered_analogies = filter_analogies(analogy_examples)
         splits[fname]['examples'] = filtered_analogies
     logging.info("Done.")

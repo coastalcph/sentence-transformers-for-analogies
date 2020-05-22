@@ -13,12 +13,16 @@ class Analogy:
     p_id: str
     q_1_source: str
     q_1_source_id: str
+    q_1_source_context: str
     q_1_target: str
     q_1_target_id: str
+    q_1_target_context: str
     q_2_source: str
     q_2_source_id: str
+    q_2_source_context: str
     q_2_target: str
     q_2_target_id: str
+    q_2_target_context: str
     distance: float
     distance_pairwise: float
 
@@ -60,17 +64,21 @@ class Analogy:
         )
 
     def get_row(self):
-        return "{q_1_source};{q_1_source_id};{q_1_target};{q_1_target_id};{q_2_source};{q_2_source_id};{q_2_target};{q_2_target_id};{distance};{distance_pairwise}""".format(
+        return "{q_1_source};{q_1_source_id};{q_1_source_context};{q_1_target};{q_1_target_id};{q_1_target_context};{q_2_source};{q_2_source_id};{q_2_source_context};{q_2_target};{q_2_target_id};{q_2_target_context};{distance};{distance_pairwise}""".format(
             distance=self.distance,
             distance_pairwise=self.distance_pairwise,
             q_1_source=self.q_1_source,
             q_1_source_id=self.q_1_source_id,
+            q_1_source_context=self.q_1_source_context,
             q_1_target=self.q_1_target,
             q_1_target_id=self.q_1_target_id,
+            q_1_target_context=self.q_1_target_context,
             q_2_source=self.q_2_source,
             q_2_source_id=self.q_2_source_id,
+            q_2_source_context=self.q_2_source_context,
             q_2_target=self.q_2_target,
             q_2_target_id=self.q_2_target_id,
+            q_2_target_context=self.q_2_target_context,
         )
 
 
@@ -78,7 +86,7 @@ class Analogy:
 def read_analogy_data(fname):
     logging.info("Loading analogy file: {}".format(fname))
     with open(fname, newline='') as csvfile:
-        fieldnames = ['Q1', 'Q1_id', 'Q2', 'Q2_id', 'Q3', 'Q3_id', 'Q4', 'Q4_id', 'distance', 'distance_pairwise']
+        fieldnames = ['Q1', 'Q1_id', 'Q1_context', 'Q2', 'Q2_id', 'Q2_context', 'Q3', 'Q3_id', 'Q3_context', 'Q4', 'Q4_id', 'Q4_context', 'distance', 'distance_pairwise']
         reader = csv.DictReader(csvfile, delimiter=';', fieldnames=fieldnames)
         for row in reader:
             yield row
@@ -144,12 +152,16 @@ def build_analogy_examples(rows):
                 current_p_id,
                 row['Q1'],
                 row['Q1_id'],
+                row['Q1_context'],
                 row['Q2'],
                 row['Q2_id'],
+                row['Q2_context'],
                 row['Q3'],
                 row['Q3_id'],
+                row['Q3_context'],
                 row['Q4'],
                 row['Q4_id'],
+                row['Q4_context'],
                 row['distance'] if row['distance']  != '' else -1.0,  # For some analogies we don't have the distances
                 row['distance_pairwise'] if row['distance_pairwise']  != '' else -1.0  # For some analogies we don't have the distances
             )
