@@ -44,7 +44,7 @@ class AnalogyReader(object):
                 text_3 = self.format_text_with_context(row['Q3'], eval(row['Q3_context']))
                 text_4 = self.format_text_with_context(row['Q4'], eval(row['Q4_context']))
                 import pdb; pdb.set_trace()
-                examples.append(InputExample(guid=guid, texts=[text_1, text_2, text_3, text_3, label=1))
+                examples.append(InputExample(guid=guid, texts=[text_1, text_2, text_3, text_3], label=1))
 
                 if 0 < max_examples <= len(examples):
                     break
