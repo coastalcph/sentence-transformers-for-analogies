@@ -168,30 +168,44 @@ def augment_data(analogy_file, outfile, lang, pointers_file, dump_file, setting=
     dump = file_open(dump_file)
     with open(outfile, 'w') as f:
 
-        writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id',  'Q2', 'Q2_id', 'Q3', 'Q3_id','Q4', 'Q4_id', 'distance', 'distance_pairwise'])
-        for row in read_analogy_data(analogy_file):
-            if not is_comment(row):
-                if setting == 'longest':
+        if setting == 'longest':
+            writer = csv.DictWriter(f, delimiter=';', fieldnames = ['Q1', 'Q1_id',  'Q2', 'Q2_id', 'Q3', 'Q3_id','Q4', 'Q4_id', 'distance', 'distance_pairwise'])
+            for row in read_analogy_data(analogy_file):
+                if not is_comment(row):
+
                     q1_context = get_longest_alias(row['Q1'], get_aliases_descriptions(row['Q1_id'], lang, dump, pointers))
                     q2_context = get_longest_alias(row['Q2'], get_aliases_descriptions(row['Q2_id'], lang, dump, pointers))
                     q3_context = get_longest_alias(row['Q3'], get_aliases_descriptions(row['Q3_id'], lang, dump, pointers))
                     q4_context = get_longest_alias(row['Q4'], get_aliases_descriptions(row['Q4_id'], lang, dump, pointers))
+                    row['Q1'] = q1_context
+                    row['Q2'] = q2_context
+                    row['Q3'] = q3_context
+                    row['Q4'] = q4_context
+                    print(row)
+                    writer.writerow(row)
                 else:
+                    writer.writerow(row)
+
+
+        else:
+            writer = csv.DictWriter(f, delimiter=';',
+                                    fieldnames=['Q1', 'Q1_id', 'Q1_context', 'Q2', 'Q2_id', 'Q2_context', 'Q3', 'Q3_id', 'Q3_context','Q4', 'Q4_id', 'Q4_context','distance',
+                                                'distance_pairwise'])
+            for row in read_analogy_data(analogy_file):
+                if not is_comment(row):
                     q1_context = get_aliases_descriptions(row['Q1_id'], lang, dump, pointers)
                     q2_context = get_aliases_descriptions(row['Q2_id'], lang, dump, pointers)
                     q3_context = get_aliases_descriptions(row['Q3_id'], lang, dump, pointers)
                     q4_context = get_aliases_descriptions(row['Q4_id'], lang, dump, pointers)
+                    row['Q1_context'] = q1_context
+                    row['Q2_context'] = q2_context
+                    row['Q3_context'] = q3_context
+                    row['Q4_context'] = q4_context
+                    print(row)
+                    writer.writerow(row)
+                else:
+                    writer.writerow(row)
 
-
-                row['Q1'] = q1_context
-                row['Q2'] = q2_context
-                row['Q3'] = q3_context
-                row['Q4'] = q4_context
-
-                print(row)
-                writer.writerow(row)
-            else:
-                writer.writerow(row)
     f.close()
 
 if __name__=="__main__":
@@ -206,5 +220,5 @@ if __name__=="__main__":
     for setting in ['unique', 'all']:
         for lang in langs:
             fname = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_dists.csv'.format(setting, lang))
-            fname_out = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_longestalias.csv'.format(setting, lang))
-            augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='longest')
+            fname_out = os.path.join(config.get('Files', 'data'), 'analogy_{}_{}_contexts.csv'.format(setting, lang))
+            augment_data(analogy_file=fname, outfile=fname_out, lang=lang, pointers_file=pointers_path, dump_file=dump_path, setting='descriptions')
