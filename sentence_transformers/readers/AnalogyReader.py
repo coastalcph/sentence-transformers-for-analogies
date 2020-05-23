@@ -13,7 +13,8 @@ class AnalogyReader(object):
 
     def format_text_with_context(self, title, context):
         new_title = title
-        if context:
+        if context != '':
+            context = eval(context)
             aliases = context['aliases']
             description = context['description']
 
@@ -36,16 +37,17 @@ class AnalogyReader(object):
         id = 0
         for row in read_analogy_data(filename):
             if not is_comment(row):
-                guid = "%s-%d" % (filename, id)
-                id += 1
-
-                text_1 = self.format_text_with_context(row['Q1'], eval(row['Q1_context']))
-                text_2 = self.format_text_with_context(row['Q2'], eval(row['Q2_context']))
-                text_3 = self.format_text_with_context(row['Q3'], eval(row['Q3_context']))
-                text_4 = self.format_text_with_context(row['Q4'], eval(row['Q4_context']))
-                import pdb; pdb.set_trace()
-                examples.append(InputExample(guid=guid, texts=[text_1, text_2, text_3, text_3], label=1))
-
+                try:
+                    guid = "%s-%d" % (filename, id)
+                    text_1 = self.format_text_with_context(row['Q1'], row['Q1_context'])
+                    text_2 = self.format_text_with_context(row['Q2'], row['Q2_context'])
+                    text_3 = self.format_text_with_context(row['Q3'], row['Q3_context'])
+                    text_4 = self.format_text_with_context(row['Q4'], row['Q4_context'])
+                    examples.append(InputExample(guid=guid, texts=[text_1, text_2, text_3, text_4], label=1))
+                    id += 1
+                except Exception as e:
+                    import pdb; pdb.set_trace()
+                    print("Could not parse row: {}".format(row))
                 if 0 < max_examples <= len(examples):
                     break
 
