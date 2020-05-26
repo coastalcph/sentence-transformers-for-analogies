@@ -25,7 +25,7 @@ def main(args):
 
 
     # Load data
-    analogy_reader = AnalogyReader()
+    analogy_reader = AnalogyReader(args.context)
     test_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.test_data)), model=model)
 
     test_dataloader = DataLoader(test_data, shuffle=False, batch_size=batch_size)
@@ -54,6 +54,8 @@ if __name__ == '__main__':
                         help="output path", default='')
     parser.add_argument('--bs', type=int, default=16,
                         help="Batch size")
+    parser.add_argument('--context', type=int, default=1,
+                        help="Wether to use contextual information of analogies or not")
 
 
 

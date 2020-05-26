@@ -8,24 +8,35 @@ class AnalogyReader(object):
     """
     Reads in the Stanford NLI dataset and the MultiGenre NLI dataset
     """
-    def __init__(self):
-        pass
+    def __init__(self, use_context):
+        self.use_context = True if use_context == 1 else False
 
-    def format_text_with_context(self, title, context):
+    def format_text_with_context(self, title, context, filters=None):
         new_title = title
-        if context != '':
+        if self.use_context and context != '':
             context = eval(context)
             aliases = context['aliases']
             description = context['description']
 
             if aliases:
-                filtered_aliases = [a for a in aliases if a.lower() != title.lower()]
-                aliases_txt = ", ".join(filtered_aliases)
+                filtered_aliases = [a for a in aliases if a.lower() != title.lower() or a.lower() in title.lower()]
+                aliases_txt = ", ".join(filtered_aliases)[:100]
+
+                if filters is not None:
+                    for f in filters:
+                        elems = f.split()
+                        for elem_to_remove in elems:
+                            aliases_txt = aliases_txt.replace(elem_to_remove, "[UNK]")
 
                 new_title += " [SEP] {}".format(aliases_txt)
 
             if description:
-                new_title += " [SEP] {}".format(description)
+                if filters is not None:
+                    for f in filters:
+                        elems = f.split()
+                        for elem_to_remove in elems:
+                            description = description.replace(elem_to_remove, "[UNK]")
+                new_title += " [SEP] {}".format(description[:100])
 
         return new_title
 
@@ -39,10 +50,10 @@ class AnalogyReader(object):
             if not is_comment(row):
                 try:
                     guid = "%s-%d" % (filename, id)
-                    text_1 = self.format_text_with_context(row['Q1'], row['Q1_context'])
-                    text_2 = self.format_text_with_context(row['Q2'], row['Q2_context'])
-                    text_3 = self.format_text_with_context(row['Q3'], row['Q3_context'])
-                    text_4 = self.format_text_with_context(row['Q4'], row['Q4_context'])
+                    text_1 = self.format_text_with_context(row['Q1'], row['Q1_context'], [row['Q3']])
+                    text_2 = self.format_text_with_context(row['Q2'], row['Q2_context'], [row['Q3']])
+                    text_3 = self.format_text_with_context(row['Q3'], row['Q3_context'], [row['Q1'], row['Q2'], row['Q4']])
+                    text_4 = self.format_text_with_context(row['Q4'], row['Q4_context'], [row['Q3']])
                     examples.append(InputExample(guid=guid, texts=[text_1, text_2, text_3, text_4], label=1))
                     id += 1
                 except Exception as e:

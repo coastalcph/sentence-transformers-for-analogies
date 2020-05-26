@@ -65,12 +65,12 @@ def main(args):
 
 
     # Load data
-    analogy_reader = AnalogyReader()
+    analogy_reader = AnalogyReader(args.context)
     train_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.train_data)), model=model)
     train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
     train_evaluator = AnalogyEvaluator(train_dataloader, tokenizer=model._first_module().tokenizer, name='train')
 
-    analogy_reader = AnalogyReader()
+    analogy_reader = AnalogyReader(args.context)
     dev_data = AnalogyDataset(analogy_reader.get_examples(os.path.join(args.data_path, args.dev_data)), model=model)
     dev_dataloader = DataLoader(dev_data, shuffle=False, batch_size=batch_size)
     dev_evaluator = AnalogyEvaluator(dev_dataloader, tokenizer=model._first_module().tokenizer, name='dev')
@@ -117,6 +117,8 @@ if __name__ == '__main__':
                         help="Evaluate every n training steps")
     parser.add_argument('--seed', type=int, default=42,
                         help="Random seed")
+    parser.add_argument('--context', type=int, default=1,
+                        help="Wether to use contextual information of analogies or not")
 
     args = parser.parse_args()
 
