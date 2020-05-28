@@ -70,7 +70,7 @@ def main(args):
     # Load data
     bdi_reader = BiDictReader()
     # src - target pairs
-    src_examples, trg_examples, src2trg = bdi_reader.get_examples(args.eval_data, args.candidates, sep=' ')
+    src_examples, trg_examples, src2trg = bdi_reader.get_examples(filename=args.eval_data, filename_candidates=args.candidates, sep=' ')
     for s, ts in src2trg.items():
         for t in ts:
             print('{} {}'.format(src_examples[s].texts, trg_examples[t].texts))
@@ -99,7 +99,7 @@ if __name__ == '__main__':
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
     parser.add_argument('--candidates', type=str,
                         help="candidates added to the dev data if not present yet",
-                        default='/home/mareike/PycharmProjects/analogies/data/bdi/muse/candidates/candidates.en.small')
+                        default='/home/mareike/PycharmProjects/analogies/data/bdi/muse/candidates/wiki.en.vec_1000')
     parser.add_argument('--eval_data', type=str,
                         help="bilingual dictionary",
                         default='/home/mareike/PycharmProjects/analogies/data/bdi/muse/dictionaries/de-en.5000-6500.txt')

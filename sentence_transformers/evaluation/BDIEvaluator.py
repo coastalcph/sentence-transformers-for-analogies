@@ -108,9 +108,9 @@ class BDIEvaluator(SentenceEvaluator):
             top_ten = top_n_idxs[sid][:10]
             top_retrieved_trgs = ','.join([self.trg_words[i.data.item()] for i in top_ten])
             n = trg_in_top_n(correct_idxs=tids, retrieved_idxs=top_ten)
-            print('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
-                         .format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
-            print('Top 10 for src words _{}_: {}\n'.format(self.src_words[sid], top_retrieved_trgs))
+            #print('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
+                         #.format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
+            #print('Top 10 for src words _{}_: {}\n'.format(self.src_words[sid], top_retrieved_trgs))
             logging.info('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
                          .format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
             logging.info('Top 10 for src words _{}_: {}'.format(self.src_words[sid], top_retrieved_trgs))

@@ -1,8 +1,5 @@
 from . import InputExample
-import gzip
-import os
-from analogy.data import read_analogy_data, is_comment
-
+import numpy as np
 
 class BiDictReader(object):
     """
@@ -11,7 +8,7 @@ class BiDictReader(object):
     def __init__(self):
         pass
 
-    def get_examples(self, filename, filename_candidates=None, max_examples=0, sep='\t'):
+    def get_examples(self, filename, filename_candidates=None, max_examples=0, sep='\t', num_candidates=10000):
         """
         """
         src_words = []
@@ -42,11 +39,21 @@ class BiDictReader(object):
                 if 0 < max_examples <= len(src_words):
                     break
         # add additional candidates
+        minimum_trg_words = len(trg_words)
         if filename_candidates:
+
+            i = 0
             for line in open(filename_candidates):
-                trg_word = line.strip()
+                if i == 0:
+                    i += 1
+                    continue
+                i+= 1
+                trg_word = line.split(' ')[0]
+
                 if trg_word not in seen_trg:
                     seen_trg.add(trg_word)
                     trg2id[trg_word] = len(trg_words)
                     trg_words.append(InputExample(guid='', texts=[trg_word], label=1))
+        trg_words = trg_words[:int(np.max([num_candidates, minimum_trg_words]))]
+        print('Size of candidate set: {}'.format(len(trg_words)))
         return src_words, trg_words, src2trg
