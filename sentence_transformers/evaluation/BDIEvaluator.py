@@ -118,10 +118,10 @@ class BDIEvaluator(SentenceEvaluator):
                 p_at_10 += 1
                 p_at_5 += 1
                 p_at_1 += 1
-            elif 0 > n <= 5:
+            elif 0 < n <= 5:
                 p_at_5 += 1
                 p_at_10 += 1
-            elif 0 > n <= 10:
+            elif 0 < n <= 10:
                 p_at_10 += 1
         print(p_at_1)
         print(p_at_5)
