@@ -8,7 +8,7 @@ class BiDictReader(object):
     def __init__(self):
         pass
 
-    def get_examples(self, filename, filename_candidates=None, max_examples=0, sep='\t', num_candidates=10000):
+    def get_examples(self, filename, filename_candidates=None, max_examples=0, sep='\t', num_candidates=200000):
         """
         """
         src_words = []
