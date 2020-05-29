@@ -9,3 +9,4 @@ from .TripletEvaluator import TripletEvaluator
 from .MSEEvaluator import MSEEvaluator
 from .AnalogyEvaluator import AnalogyEvaluator
 from .BDIEvaluator import BDIEvaluator
+from .PAFitEvaluator import PAFitEvaluator
