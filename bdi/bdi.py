@@ -12,7 +12,7 @@ from sentence_transformers.readers import BiDictReader
 from sentence_transformers import losses
 from torch.utils.data import DataLoader
 from sentence_transformers.datasets import BDIDataset
-from sentence_transformers.evaluation import BDIEvaluator
+from sentence_transformers.evaluation import BDIEvaluator, PAFitEvaluator
 import os
 import argparse
 import uuid
@@ -81,8 +81,10 @@ def main(args):
 
     src_words = [elm.texts[0] for elm in src_examples]
     trg_words = [elm.texts[0] for elm in trg_examples]
-
-    eval = BDIEvaluator(dataloader=None, src_words=src_words, trg_words=trg_words, src2trg=src2trg)
+    if args.pa_fit:
+        eval = PAFitEvaluator(dataloader=None, src_words=src_words, trg_words=trg_words, src2trg=src2trg)
+    else:
+        eval = BDIEvaluator(dataloader=None, src_words=src_words, trg_words=trg_words, src2trg=src2trg)
     eval(model, output_path=output_path)
 
 
@@ -95,9 +97,12 @@ if __name__ == '__main__':
                         default='small_bert',
                         choices=['bert-base-multilingual-cased', 'bert-base-uncased', 'small_bert', 'xlm-roberta-base'],
                         help="The pre-trained encoder used to encode the entities of the analogy")
+
     parser.add_argument('--finetuned_model', type=str,
-                        default='/home/mareike/PycharmProjects/analogies/code/sentence-transformers-for-analogies/sentence_transformers/37ea3401e1c94322ba01b9773ab1303f',
-                        help="The finetuned model, e.g. trained on analogies, to be evaluated")
+                        default=None,                        help="The finetuned model, e.g. trained on analogies, to be evaluated")
+    parser.add_argument('--pa_fit', type=bool_flag,
+                        default=True,
+                        help="Evaluate the Procrustes Fit of the data on the supervision dictionary")
     parser.add_argument('--data_path', type=str,
                         help="Data directory", default='/home/mareike/PycharmProjects/analogies/data')
     parser.add_argument('--candidates', type=str,
