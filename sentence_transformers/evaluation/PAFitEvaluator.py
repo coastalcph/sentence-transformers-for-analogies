@@ -50,8 +50,8 @@ class PAFitEvaluator(SentenceEvaluator):
 
 
     def compute_PA(self, x, y):
-        U, S, Vt = torch.svd(torch.mm(torch.transpose(y, 0, 1), x))
-        W = torch.mm(U, Vt)
+        U, S, Vt = np.linalg.svd(torch.mm(torch.transpose(y, 0, 1), x), full_matrices=True)
+        W = torch.from_numpy(U.dot(Vt))
         return W
 
 
@@ -91,7 +91,6 @@ class PAFitEvaluator(SentenceEvaluator):
 
         rep_src = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(self.src_words)], 0)
         rep_src = torch.mm(rep_src, mapping)
-
         rep_trg = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(self.trg_words)], 0)
 
 
@@ -128,9 +127,9 @@ class PAFitEvaluator(SentenceEvaluator):
             top_ten = top_n_idxs[sid][:10]
             top_retrieved_trgs = ','.join([self.trg_words[i.data.item()] for i in top_ten])
             n = trg_in_top_n(correct_idxs=tids, retrieved_idxs=top_ten)
-            print('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
-                         .format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
-            print('Top 10 for src words _{}_: {}\n'.format(self.src_words[sid], top_retrieved_trgs))
+            #print('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
+            #             .format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
+            #print('Top 10 for src words _{}_: {}\n'.format(self.src_words[sid], top_retrieved_trgs))
             logging.info('Retrieved one of trgs _{}_ for src word _{}_ on rank {}'\
                          .format(','.join([self.trg_words[i] for i in self.src2trg[sid]]), self.src_words[sid], n))
             logging.info('Top 10 for src words _{}_: {}'.format(self.src_words[sid], top_retrieved_trgs))
@@ -171,7 +170,31 @@ class PAFitEvaluator(SentenceEvaluator):
 
         return p_at_1
 
-    if __name__=="__main__":
-        pass
+def compute_PA(x, y):
+    if True:
+        print('a')
+        print(x.shape)
+        print(y.shape)
+        # x = torch.transpose(x, 0, 1)
+        # y = torch.transpose(y, 0, 1)
+        print('b')
+        print(x.shape)
+        print(y.shape)
+        U, S, Vt = torch.svd(torch.mm(torch.transpose(y, 0, 1), x))
+        W = torch.mm(U, Vt)
+        print(W.shape)
+        # apply mappping
+        x_mapped = torch.transpose(torch.mm(W, torch.transpose(x, 0, 1)), 0, 1)
+        print(x_mapped.shape)
+        print(x_mapped - y)
+        return W
+
+if __name__=="__main__":
+    _x = torch.tensor(np.randint((30, 10)))
+    y = torch.tensor(np.randint((30, 10)))
+    m = torch.tensor(np.randint((10, 10)))
+    x = torch.mm(_x, m)
+
+    compute_PA(x, y)
 
 
