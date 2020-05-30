@@ -20,6 +20,11 @@ class BiDictReader(object):
         seen_src = set()
         seen_trg = set()
         for line in open(filename):
+            if id == 0:
+                # check if separator is correct
+                if len(line.split(sep)) != 2:
+                    if sep == '\t': sep = ' '
+                    elif sep == ' ': sep = '\t'
             guid = "%s-%d" % (filename, id)
             id += 1
             src_word = line.strip().split(sep)[0]
