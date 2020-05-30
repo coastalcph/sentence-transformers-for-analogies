@@ -73,7 +73,7 @@ def main(args):
     # Load data
     bdi_reader = BiDictReader()
     # src - target pairs
-    src_examples, trg_examples, src2trg = bdi_reader.get_examples(filename=args.eval_data, filename_candidates=args.candidates, sep=' ', num_candidates=args.num_candidates)
+    src_examples, trg_examples, src2trg = bdi_reader.get_examples(filename=args.eval_data, filename_candidates=args.candidates, sep='\t', num_candidates=args.num_candidates)
     for s, ts in src2trg.items():
         for t in ts:
             print('{} {}'.format(src_examples[s].texts, trg_examples[t].texts))

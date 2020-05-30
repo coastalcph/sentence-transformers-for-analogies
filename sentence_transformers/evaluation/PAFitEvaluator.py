@@ -50,10 +50,10 @@ class PAFitEvaluator(SentenceEvaluator):
 
 
     def compute_PA(self, x, y):
-        U, S, Vt = np.linalg.svd(torch.mm(torch.transpose(y, 0, 1), x), full_matrices=True)
+
+        U, S, Vt = np.linalg.svd(torch.mm(y, torch.transpose(x, 0, 1)), full_matrices=True)
         W = torch.from_numpy(U.dot(Vt))
         return W
-
 
     def __call__(self, model: 'SequentialSentenceEmbedder', output_path: str = None, epoch: int = -1,
                  steps: int = -1) -> float:
@@ -87,10 +87,11 @@ class PAFitEvaluator(SentenceEvaluator):
         bd_rep_src = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(bd_src_words)], 0)
         bd_rep_trg = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(bd_trg_words)],
                                0)
-        mapping = self.compute_PA(bd_rep_src, bd_rep_trg)
+        mapping = self.compute_PA(torch.transpose(bd_rep_src, 0, 1), torch.transpose(bd_rep_trg, 0, 1))
 
         rep_src = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(self.src_words)], 0)
-        rep_src = torch.mm(rep_src, mapping)
+        # apply mapping to src embeddings
+        rep_src = torch.transpose(torch.mm(mapping, torch.transpose(rep_src, 0, 1)), 0, 1)
         rep_trg = torch.cat([torch.from_numpy(elm.reshape(1, elm.shape[0])) for elm in model.encode(self.trg_words)], 0)
 
 
