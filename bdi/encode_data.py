@@ -67,13 +67,19 @@ def main(args):
     # Load data
     if args.data_type == 'word_embeddings':
         toks = []
+        c = 0
         with open(args.data) as f:
             for line in f:
                 if len(line.split(' ')) == 2:
                     continue
+                c += 1
+                if c %1000 == 0: print('read {} examples'.format(c))
+                if c > args.max_data: break
                 else: toks.append(line.split(' ')[0])
+        print('Encoding... ')
         encoded_tokens = model.encode(toks)
         out_data = []
+        print('Wrting embeddings to file')
         for i, tok in enumerate(toks):
             encoding = encoded_tokens[i]
             str_rep_encoding = ' '.join([str(elm) for elm in list(encoding)])
@@ -141,6 +147,8 @@ if __name__ == '__main__':
                         help="Batch size")
     parser.add_argument('--seed', type=int, default=42,
                         help="Random seed")
+    parser.add_argument('--max_data', type=int, default=300000,
+                        help="maximum number of examples to encoded")
 
     args = parser.parse_args()
 
