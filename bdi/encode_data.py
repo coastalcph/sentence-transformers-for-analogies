@@ -66,6 +66,7 @@ def main(args):
 
     # Load data
     if args.data_type == 'word_embeddings':
+        out_separator = ' '
         toks = []
         c = 0
         with open(args.data) as f:
@@ -86,6 +87,7 @@ def main(args):
             out_data.append([tok, str_rep_encoding])
 
     elif args.data_type == 'analogies':
+        out_separator = '\t'
         qids = []
         toks = []
         seen_toks = set()
@@ -111,7 +113,7 @@ def main(args):
         # first line is num_data emb_dim
         fout.write('{} {}\n'.format(len(out_data), emb_dim))
         for elm in out_data:
-            fout.write('{}\n'.format('\t'.join(elm)))
+            fout.write('{}\n'.format('{}'.format(out_separator).join(elm)))
     fout.close()
 
 
