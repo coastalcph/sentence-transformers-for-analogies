@@ -6,7 +6,7 @@ from analogy.data import read_analogy_data, is_comment
 
 class AnalogyReader(object):
     """
-    Reads in the Stanford NLI dataset and the MultiGenre NLI dataset
+    Reads in the Wiking dataset
     """
     def __init__(self, use_context):
         self.use_context = True if use_context == 1 else False
@@ -64,6 +64,7 @@ class AnalogyReader(object):
 
         return examples
 
+
     """
     @staticmethod
     def get_labels():
@@ -75,3 +76,4 @@ class AnalogyReader(object):
     def map_label(self, label):
         return self.get_labels()[label.strip().lower()]
     """
+
