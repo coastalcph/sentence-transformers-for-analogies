@@ -145,7 +145,7 @@ class AnalogyEvaluator(SentenceEvaluator):
         b_norm = rep_candidates / rep_candidates.norm(dim=1)[:, None]
         cosine_sims = torch.mm(a_norm, b_norm.transpose(0, 1))
 
-        top_ten_idxs = cosine_sims.argsort(descending=True)[:, :10]
+        top_ten_idxs = cosine_sims.cpu().argsort(descending=True)[:, :10]
         top4_idxs = top_ten_idxs[:, :4]
 
         def is_success(e3, e1_e2_e4, top4):
