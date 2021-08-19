@@ -4,6 +4,8 @@ This is the code repository for the paper [Analogy Training Multilingual Encoder
 
 It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
+The dataset is available [here](https://bit.ly/3aaKTzF)
+
 It contains three training scripts;
 1. `train.sh`: Trains a sentence transformer using only the entities of a given analogy.
 2. `train_alias.sh`: Trains a sentence transformer using the entities along with their respective aliases.
