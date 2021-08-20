@@ -20,3 +20,20 @@ It contains three scripts evaluating fine-tuned architectures;
 1. `eval_finetuned.sh`: Evaluate a fine-tuned sentence transformer using only the entities of a given analogy.
 2. `eval_finetuned_alias.sh`: Evaluate a fine-tuned sentence transformer using the entities along with their respective aliases.
 3. `eval_finetuned_context.sh`: Evaluate a fine-tuned sentence transformer using the entities along with their respective contexts (descriptions).
+
+## Citing and Contact 
+If you have questions or comments, please contact the corresponding author at
+
+Our work can be cited as 
+```
+@inproceedings{garneau2021analogy,
+  title={Analogy Training Multilingual Encoders},
+  author={Garneau, Nicolas and Hartmann, Mareike and Sandholm, Anders and Ruder, Sebastian and Vulic, Ivan and S{\o}gaard, Anders},
+  booktitle={Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume={35},
+  number={14},
+  pages={12884--12892},
+  year={2021}
+}
+```
+
