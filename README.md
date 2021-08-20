@@ -2,7 +2,16 @@
 
 This is the code repository for the AAAI paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331) (Garneau et al. 2021). It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
-The dataset is available [here](https://bit.ly/3aaKTzF)
+The repository provides 
+- the [analogy dataset](https://bit.ly/3aaKTzF) used to train the multilingual encoder
+- the improved multilingual encoder after training on the analogy dataset
+- scripts for training and evaluating models
+
+## Dataset
+## Model
+## Scripts
+
+The repository contains the training and evaluation scripts that we used for the experiments reported in the paper.
 
 It contains three training scripts;
 1. `train.sh`: Trains a sentence transformer using only the entities of a given analogy.
