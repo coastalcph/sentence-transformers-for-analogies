@@ -34,7 +34,7 @@ It contains three scripts evaluating fine-tuned architectures;
 3. `eval_finetuned_context.sh`: Evaluate a fine-tuned sentence transformer using the entities along with their respective contexts (descriptions).
 
 ## Citing and Contact 
-If you have questions or comments, please contact the corresponding author at `nicolas.garneau@ift.ulaval.ca` (Nicolas Garneau) or `mrkhartmann4@gmail.com` (Mareike Hartmann).
+If you have questions or comments, please contact the corresponding authors at `nicolas.garneau@ift.ulaval.ca` (Nicolas Garneau) or `mrkhartmann4@gmail.com` (Mareike Hartmann).
 
 The paper can be cited as 
 ```
