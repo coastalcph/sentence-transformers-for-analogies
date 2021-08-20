@@ -11,7 +11,7 @@ We hypothesize that improved global consistency improves isomorphism between the
                         
 In this repository, we release 
 - the [analogy dataset](https://bit.ly/3aaKTzF) used to train the multilingual encoder
-- the [improved multilingual encoder]() (which is a version of the mBert encoder trained on our analogy dataset)
+- the [improved multilingual encoder](https://drive.google.com/drive/folders/1Cvlgtq46igPk6s8hJLp2qKU1_U3Njqrm?usp=sharing) (which is a version of the mBert encoder trained on our analogy dataset)
 - scripts for training and evaluating models
 
 ## Scripts
