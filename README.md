@@ -1,10 +1,14 @@
-# Sentence Transformers for Analogies
+# Analogy Training Multilingual Encoders
 
 This is the code repository for the AAAI paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331) (Garneau et al. 2021). It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
+The goal of our work is to improve multilingual encoders, based on the observation that they are globally inconsistent.
+
+
+
 The repository provides 
 - the [analogy dataset](https://bit.ly/3aaKTzF) used to train the multilingual encoder
-- the improved multilingual encoder after training on the analogy dataset
+- the improved multilingual encoder (which is a version of the mBert encoder trained on our analogy dataset)
 - scripts for training and evaluating models
 
 ## Dataset
