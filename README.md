@@ -2,20 +2,18 @@
 
 This is the code repository for the AAAI paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331) (Garneau et al. 2021). It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
-The goal of our work is to improve multilingual encoders, based on the observation that they are globally inconsistent.
+The goal of our work is to improve multilingual encoders, based on the observation that mutlilingual encoders are globally inconsistent, i.e. the extent to which they reflect semantic relations varies with scale. For example, in the figure below, the analogy *woman is to man as catwoman is to dude* is more diffcult to predict than *woman is to man as queen is to king*, and predictions are more difficult the further the elements of the analogy are apart from each other. 
 <p align="center">
   <img src="https://github.com/coastalcph/sentence-transformers-for-analogies/blob/master/inconsistency.png" />
 </p>
 
-
-
-The repository provides 
+We hypothesize that improved global consistency improves isomorphism between the language-specific subspaces and helps cross-lingual transfer. To improve global consistency, we train a pre-trained multilingual encoder on an analogy prediction task in multiple languages. To this end, we collect **WiQueen**, a new large-scale analogy dataset in 11 languages (Danish, Dutch, English, Finnish, French, German, Italian, Polish, Portuguese, Spanish, and Swedish) based on Wikidata data.
+                        
+In this repository, we release 
 - the [analogy dataset](https://bit.ly/3aaKTzF) used to train the multilingual encoder
-- the improved multilingual encoder (which is a version of the mBert encoder trained on our analogy dataset)
+- the [improved multilingual encoder]() (which is a version of the mBert encoder trained on our analogy dataset)
 - scripts for training and evaluating models
 
-## Dataset
-## Model
 ## Scripts
 
 The repository contains the training and evaluation scripts that we used for the experiments reported in the paper.
