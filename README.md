@@ -3,7 +3,9 @@
 This is the code repository for the AAAI paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331) (Garneau et al. 2021). It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
 The goal of our work is to improve multilingual encoders, based on the observation that they are globally inconsistent.
-![Inconsistency](https://github.com/coastalcph/sentence-transformers-for-analogies/blob/master/inconsistency.png)
+<p align="center">
+  <img src="https://github.com/coastalcph/sentence-transformers-for-analogies/blob/master/inconsistency.png" />
+</p>
 
 
 
