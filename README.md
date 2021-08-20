@@ -1,8 +1,6 @@
 # Sentence Transformers for Analogies
 
-This is the code repository for the paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331)
-
-It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
+This is the code repository for the AAAI paper [Analogy Training Multilingual Encoders](https://ojs.aaai.org/index.php/AAAI/article/view/17524/17331) (Garneau et al. 2021). It is a fork from the original [Sentence Transformers](https://github.com/UKPLab/sentence-transformers) repository.
 
 The dataset is available [here](https://bit.ly/3aaKTzF)
 
@@ -22,9 +20,9 @@ It contains three scripts evaluating fine-tuned architectures;
 3. `eval_finetuned_context.sh`: Evaluate a fine-tuned sentence transformer using the entities along with their respective contexts (descriptions).
 
 ## Citing and Contact 
-If you have questions or comments, please contact the corresponding author at
+If you have questions or comments, please contact the corresponding author at `nicolas.garneau@ift.ulaval.ca` (Nicolas Garneau) or `mrkhartmann4@gmail.com` (Mareike Hartmann).
 
-Our work can be cited as 
+The paper can be cited as 
 ```
 @inproceedings{garneau2021analogy,
   title={Analogy Training Multilingual Encoders},
